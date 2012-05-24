@@ -33,10 +33,6 @@ doConnection :: Socket -> String -> String -> IO()
 doConnection s nick realname
     = mapM_ (\str -> send s str) $ connectionStrings nick realname
 
-getdata :: Socket -> IO String
-getdata s = recv s 4096 >>= \str -> case length str of 0 -> return str
-                                                       _ -> return str >> getdata s
-
 loop :: Socket -> IO()
 loop s = recv s 4096 >>= \str ->
          putStrLn str >>
@@ -44,8 +40,8 @@ loop s = recv s 4096 >>= \str ->
          loop s
 
 parseMessage :: Socket -> String -> IO()
-parseMessage s (p:i:str)
-    | isPrefixOf "PING" (p:i:str) = send s (ircStr (p:'O':str)) >> return ()
+parseMessage s str
+    | isPrefixOf "PING" str = send s (ircStr (map (\x -> if x=='I' then 'O' else x) str)) >> return ()
     | otherwise = return ()
 
 main = mkConnection "irc.quakenet.org" 6667 >>= \c ->
