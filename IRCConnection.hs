@@ -1,5 +1,6 @@
 module IRCConnection(mkConnection,doConnection,ircStr) where
 
+import Data.List
 import Network.Socket
 import Debug.Trace
 
