@@ -1,13 +1,15 @@
 module IRCConnection(mkConnection,doConnection,ircStr) where
 
 import Data.List
-import Network.Socket
+import Network.Socket hiding(send, sendTo, recv, recvFrom)
+import Network.Socket.ByteString
+import qualified Data.ByteString.UTF8 as UTF8
 import Debug.Trace
 
-ircStr :: String -> String
-ircStr s = s ++ "\r\n"
+ircStr :: String -> UTF8.ByteString
+ircStr s = UTF8.fromString (s ++ "\r\n")
 
-connectionStrings :: String -> String -> [String]
+connectionStrings :: String -> String -> [UTF8.ByteString]
 connectionStrings n rn = [ircStr $ intercalate rn ["USER "," "," * :",""],
                           ircStr $ "NICK " ++ n]
                                    
@@ -26,7 +28,7 @@ mkConnection addr port = socket AF_INET Stream defaultProtocol >>= \sock ->
                          let sockaddr = (SockAddrInet (fromIntegral port :: PortNumber) hostaddr)
                             in
                             connect sock sockaddr >>
-                            putStrLn ("Connecting to " ++ (show sockaddr)) >>
+                            Prelude.putStrLn ("Connecting to " ++ (show sockaddr)) >>
                             return sock `debug` "Connected"
 
 doConnection :: Socket -> String -> String -> IO()

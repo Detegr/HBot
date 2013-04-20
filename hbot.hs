@@ -2,11 +2,15 @@
 
 import IRCConnection
 import HBotParsers
-import Network.Socket
+import Network.Socket hiding(send, sendTo, recv, recvFrom)
+import Network.Socket.ByteString
+import qualified Data.ByteString as B
 import Data.List
 import Text.Parsec
 import Text.Parsec.Text
 import Data.Text
+import Data.Text.Encoding
+import qualified Data.Text.IO as T
 
 handleMsg (Msg t h c d) s
   | t == PING = send s (ircStr $ "PONG :" ++ d) >> return ()
@@ -15,8 +19,8 @@ handleMsg (Msg t h c d) s
 loop :: Socket -> IO()
 loop s = do
          str <- recv s 4096
-         putStrLn $ str
-         case parse parsers "" (pack str) of
+         T.putStrLn $ (decodeUtf8 str)
+         case parse parsers "" (decodeUtf8 str) of
            Left err  -> putStrLn $ show err
            Right val -> handleMsg val s
          loop s
