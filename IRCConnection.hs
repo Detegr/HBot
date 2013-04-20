@@ -4,7 +4,9 @@ import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString as B
 import Debug.Trace
+import System.IO
 
 ircStr :: String -> UTF8.ByteString
 ircStr s = UTF8.fromString (s ++ "\r\n")
@@ -22,15 +24,17 @@ addrFromStr addr = getAddrInfo Nothing (Just addr) Nothing >>= \infos ->
 getAddr :: SockAddr -> HostAddress
 getAddr (SockAddrInet _ h) = h
 
-mkConnection :: String -> Int -> IO Socket
+mkConnection :: String -> Int -> IO Handle
 mkConnection addr port = socket AF_INET Stream defaultProtocol >>= \sock ->
                          addrFromStr addr >>= \hostaddr ->
                          let sockaddr = (SockAddrInet (fromIntegral port :: PortNumber) hostaddr)
-                            in
-                            connect sock sockaddr >>
-                            Prelude.putStrLn ("Connecting to " ++ (show sockaddr)) >>
-                            return sock `debug` "Connected"
+                            in do
+                            connect sock sockaddr
+                            Prelude.putStrLn ("Connecting to " ++ (show sockaddr))
+                            hdl <- socketToHandle sock ReadWriteMode
+                            hSetBuffering hdl LineBuffering
+                            return hdl `debug` "Connected"
 
-doConnection :: Socket -> String -> String -> IO()
-doConnection s nick realname
-    = mapM_ (\str -> send s str) $ connectionStrings nick realname
+doConnection :: Handle -> String -> String -> IO()
+doConnection h nick realname
+    = mapM_ (\str -> B.hPutStr h str) $ connectionStrings nick realname

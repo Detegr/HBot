@@ -5,7 +5,7 @@ import Text.Parsec.Text
 
 type Channel = String
 type MsgData = String
-data MsgType = PRIVMSG | PING | Unknown deriving (Show, Eq)
+data MsgType = PRIVMSG | PING | STATUS | Unknown deriving (Show, Eq)
 
 data MsgHost = MsgHost { nickName :: String, userName :: String, hostName :: String } deriving Show
 data Msg = Msg
