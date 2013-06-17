@@ -12,25 +12,26 @@ import Data.Text
 import Data.Text.Encoding
 import qualified Data.Text.IO as T
 import System.IO
+import Control.Monad
 
 irc :: Handle -> String -> IO()
 irc h s = B.hPutStr h (ircStr s)
 
-handleMsg (Msg t h c d) hdl
-  | t == PING = irc hdl ("PONG :" ++ d) >> return ()
+handleMsg (Msg pr c p t) (Connection a port n r h)
+  | c == (Left "PING") = irc h ("PONG :" ++ t) >> return ()
+  | t == "Nickname is already in use." = reconnect (Connection a port (n ++ "_") r h) >>= \c -> loop c
   | otherwise = return ()
 
-loop :: Handle -> IO()
-loop h = do
-         str <- B.hGetLine h
+loop :: Connection -> IO()
+loop c = do
+         str <- B.hGetLine (handle c)
          T.putStrLn $ (decodeUtf8 str)
          case parse parsers "" (decodeUtf8 str) of
            Left err  -> putStrLn $ show err
-           Right val -> handleMsg val h
-         loop h
+           Right val -> do
+                 putStrLn $ show val
+                 handleMsg val c
+         loop c
 
 main = do
-       h <- mkConnection "irc.quakenet.org" 6667
-       putStrLn "Made a connection"
-       doConnection h "HBot" "Haskell bot"
-       loop h
+       doConnection "irc.quakenet.org" 6667 "HBot" "Haskell bot" >>= \c -> loop c
