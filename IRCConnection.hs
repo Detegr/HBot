@@ -7,8 +7,6 @@ import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.ByteString as B
 import Debug.Trace
 import System.IO
-import Data.IORef
-import Data.Monoid
 
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
 

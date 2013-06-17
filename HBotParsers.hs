@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module HBotParsers(parsers,MsgHost,Msg(..)) where
+module HBotParsers(lineParser,MsgHost,Msg(..)) where
 
 import Text.Parsec
 import Text.Parsec.Text
 
-data MsgHost = MsgHost { nickName :: String, userName :: String, hostName :: String } deriving Show
+data MsgHost = MsgHost { nickName :: String, userName :: String, hostName :: String } deriving (Show, Eq)
 data Msg = Msg
   {
     prefix   :: Either String MsgHost,
@@ -13,6 +13,8 @@ data Msg = Msg
     params   :: [String],
     trailing :: String
   } deriving Show
+
+ircstring = many . noneOf $ "\r\n" :: Parser String
 
 parseHost :: Parser (Either String MsgHost)
 parseHost = do
@@ -41,24 +43,15 @@ parsePrefix = try parseHost <|> try parseServer <|> parseAnyPrefix
 parseCommand :: Parser (Either String Integer)
 parseCommand = do
   num <- try . many $ digit
-  str <- many . noneOf $ " "
+  str <- many . noneOf $ " \r\n"
   if (length num) /= 0 then return $ Right (read num :: Integer) else return $ Left str
 
-normalMessage :: Parser Msg
-normalMessage = do
+lineParser :: Parser Msg
+lineParser = do
   prefix <- parsePrefix
-  char ' '
+  space
   command <- parseCommand
   params <- many . noneOf $ ":"
-  char ':'
-  msgdata <- many . noneOf $ "\r\n"
+  skipMany . char $ ':'
+  msgdata <- ircstring
   return $ Msg prefix command (words params) msgdata
-
-pingMessage :: Parser Msg
-pingMessage = do
-  string "PING "
-  char ':'
-  to <- many . noneOf $ "\r\n"
-  return $ Msg (Left "") (Left "PING") [] to
-
-parsers = try normalMessage <|> pingMessage
