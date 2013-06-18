@@ -1,4 +1,4 @@
-module IRCConnection(doConnection,ircStr,Connection(..),reconnect) where
+module Connection(doConnection,ircStr,Connection(..),reconnect) where
 
 import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
