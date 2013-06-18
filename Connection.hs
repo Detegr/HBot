@@ -1,4 +1,4 @@
-module Connection(doConnection,ircStr,Connection(..),reconnect) where
+module Connection(doConnection,ircStr,Connection(..),reconnect,pong,privmsg) where
 
 import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
@@ -12,6 +12,9 @@ data Connection = Connection {address :: String, port :: Int, nick :: String, re
 
 ircStr :: String -> UTF8.ByteString
 ircStr s = UTF8.fromString (s ++ "\r\n")
+
+privmsg to msg = "PRIVMSG " ++ to ++ " :" ++ msg
+pong s = "PONG " ++ s
 
 connectionStrings :: String -> String -> [UTF8.ByteString]
 connectionStrings n rn = [ircStr $ intercalate rn ["USER "," "," * :",""],

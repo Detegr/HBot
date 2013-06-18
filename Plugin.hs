@@ -1,4 +1,4 @@
-module Plugin(initPlugins) where
+module Plugin(initPlugins, runPlugin, Plugin(..)) where
 import Plugin.Wikla
 import System.Plugins.Hotswap
 

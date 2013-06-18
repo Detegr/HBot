@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parser(lineParser,MsgHost,Msg(..)) where
+module Parser(lineParser,MsgHost(..),Msg(..)) where
 
 import Text.Parsec
 import Text.Parsec.Text
@@ -34,8 +34,8 @@ parseServer = do
 
 parseAnyPrefix :: Parser (Either String MsgHost)
 parseAnyPrefix = do
-    anystr <- many . noneOf $ " "
-    return $ Left anystr
+  anystr <- many . noneOf $ " "
+  return $ Left anystr
 
 parsePrefix :: Parser (Either String MsgHost)
 parsePrefix = try parseHost <|> try parseServer <|> parseAnyPrefix
