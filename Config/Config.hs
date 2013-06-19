@@ -11,60 +11,63 @@ import Data.String.Utils
 
 data ConfigItem = ConfigItem
   {
-      key :: String,
-      val :: String
-  }
-
-instance Show ConfigItem where
-  show ci = (key ci) ++ " - " ++ (val ci)
+      key :: CString,
+      val :: CString
+  } deriving Show
 
 instance Storable ConfigItem where
   alignment _ = 8
-  sizeOf _ = 16
+  sizeOf _ = 8
   peek ptr = do
-    a <- peekCString (plusPtr ptr 0)
-    b <- peekCString (plusPtr ptr 4)
+    a <- peekByteOff ptr 0
+    b <- peekByteOff ptr 4
     return $ ConfigItem a b
+  poke ptr (ConfigItem a b)= do
+    pokeByteOff ptr 0 a
+    pokeByteOff ptr 4 b
 
 data ConfigSection = ConfigSection
   {
-      name           :: String,
-      itemsCount     :: Integer,
-      allocatedItems :: Integer,
-      items          :: [ConfigItem]
-  }
-
-instance Show ConfigSection where
-  show (ConfigSection n ic ai i) = "[" ++ n ++ "]: ItemCount: " ++ (show ic) ++ "\n"
+      name           :: CString,
+      itemsCount     :: CUInt,
+      allocatedItems :: CUInt,
+      items          :: Ptr ConfigItem
+  } deriving Show
 
 instance Storable ConfigSection where
   alignment _ = 8
   sizeOf _ = 16
   peek ptr = do
-    a <- peekCString $ plusPtr ptr 0
-    b <- (peekByteOff ptr 4) :: IO CUInt
-    c <- (peekByteOff ptr 8) :: IO CUInt
-    d <- peekArray (fromIntegral b) (plusPtr ptr 12)
-    return $ ConfigSection a (fromIntegral b) (fromIntegral c) d
+    a <- peekByteOff ptr 0
+    b <- peekByteOff ptr 4
+    c <- peekByteOff ptr 8
+    d <- peekByteOff ptr 12
+    return $ ConfigSection a b c d
+  poke ptr (ConfigSection a b c d) = do
+    pokeByteOff ptr 0  a
+    pokeByteOff ptr 4  b
+    pokeByteOff ptr 8  c
+    pokeByteOff ptr 12 d
 
 data Config = Config 
   {
-      sectionCount      :: Integer,
-      allocatedSections :: Integer,
-      sections          :: [ConfigSection]
-  }
-
-instance Show Config where
-  show (Config sc as s) = ("Config with " ++ (show sc) ++ " sections\n") ++ (Data.String.Utils.join [] (map show s))
+      sectionCount      :: CUInt,
+      allocatedSections :: CUInt,
+      sections          :: Ptr ConfigSection
+  } deriving Show
 
 instance Storable Config where
   alignment _ = 4
   sizeOf _ = 16
   peek ptr = do
-    a <- (peekByteOff ptr 0) :: IO CUInt
-    b <- (peekByteOff ptr 4) :: IO CUInt
-    c <- peekArray (fromIntegral a) (plusPtr ptr 8)
-    return $ Config (fromIntegral a) (fromIntegral b) c
+    a <- peekByteOff ptr 0
+    b <- peekByteOff ptr 4
+    c <- peekByteOff ptr 8
+    return $ Config a b c
+  poke ptr (Config a b c) = do
+    pokeByteOff ptr 0 a
+    pokeByteOff ptr 4 b
+    pokeByteOff ptr 8 c
 
 foreign import ccall unsafe "config_init" initConfig :: Ptr Config -> IO()
 foreign import ccall unsafe "config_load" loadConfig :: Ptr Config -> CString -> IO()
@@ -79,10 +82,14 @@ withLoadedConfig s f = alloca $ \p -> do
 withSection c needle f = do
   alloca $ \ptr -> do
     poke ptr c
-    section <- findSection ptr needle
-    if section == nullPtr then f Nothing
-                          else f (Just . peek $ section)
+    withCString needle $ \n -> do
+      section <- findSection ptr n
+      if section == nullPtr then f Nothing
+                            else peek section >>= \ps -> f (Just ps)
 
 main = do
   withLoadedConfig "test.conf" $ \c -> do
-    putStrLn (show c)
+    withSection c "Account" $ \s -> do
+      case s of
+        (Just s) -> peekCString (name s) >>= \str -> putStrLn str
+        _        -> putStrLn "Section not found"
