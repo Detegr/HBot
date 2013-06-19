@@ -57,7 +57,7 @@ data Config = Config
   } deriving Show
 
 instance Storable Config where
-  alignment _ = 4
+  alignment _ = 8
   sizeOf _ = 16
   peek ptr = do
     a <- peekByteOff ptr 0
