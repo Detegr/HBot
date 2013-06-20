@@ -33,7 +33,7 @@ data CConfigSection = CConfigSection
       cname           :: CString,
       citemsCount     :: CUInt,
       callocatedItems :: CUInt,
-      citems          :: Ptr CConfigItem
+      citems          :: Ptr (Ptr CConfigItem)
   } deriving Show
 
 type ConfigSection = (String, [ConfigItem])
@@ -57,7 +57,7 @@ data Config = Config
   {
       sectionCount      :: CUInt,
       allocatedSections :: CUInt,
-      sections          :: Ptr CConfigSection
+      sections          :: Ptr (Ptr CConfigSection)
   } deriving Show
 
 instance Storable Config where
@@ -89,10 +89,10 @@ withSection c needle f = do
     else do
       s <- peek section
       name <- peekCString (cname s)
-      arr <- peekArray (fromIntegral . citemsCount $ s) (citems s)
-      --arr' <- mapM toHs arr
-      f (name, arr)
-  where toHs x = peekCString (key x) >>= \k -> peekCString (val x) >>= \v -> return $ (k,v)
+      itemptrs <- peekArray (fromIntegral . citemsCount $ s) (citems s)
+      items <- mapM (peekvalues <=< peek) itemptrs
+      f (name, items)
+  where peekvalues x = peekCString (key x) >>= \k -> peekCString (val x) >>= \v -> return $ (k,v)
 
 main = do
   withLoadedConfig "test.conf" $ \c -> do
