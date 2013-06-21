@@ -239,3 +239,10 @@ int config_load(struct config* conf, const char* filename)
 	fclose(f);
 	return 0;
 }
+
+int config_save(struct config* conf, const char* filename)
+{
+	FILE* f=fopen(filename, "w");
+	if(!f) return -1;
+	config_flush(conf, f);
+}

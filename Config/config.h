@@ -31,6 +31,7 @@ void config_init(struct config* conf);
 void config_free(struct config* conf);
 int config_load(struct config* conf, const char* filename);
 void config_add(struct config* conf, const char* section, const char* key, const char* val);
+int config_save(struct config* conf, const char* filename);
 void config_flush(struct config* conf, FILE* stream);
 
 #endif

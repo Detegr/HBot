@@ -76,11 +76,15 @@ instance Storable Config where
 foreign import ccall unsafe "config_init" initConfig :: Ptr Config -> IO()
 foreign import ccall unsafe "config_load" loadConfig :: Ptr Config -> CString -> IO()
 foreign import ccall unsafe "config_find_section" findSection :: Ptr Config -> CString -> IO(Ptr CConfigSection)
+foreign import ccall unsafe "config_add" configAdd :: Ptr Config -> CString -> CString -> CString -> IO()
+foreign import ccall unsafe "config_free" freeConfig :: Ptr Config -> IO()
+foreign import ccall unsafe "config_save" saveConfigInternal :: Ptr Config -> CString -> IO()
 
-withConfig f = alloca $ \p -> initConfig p >> f p
+withConfig f = alloca $ \p -> initConfig p >> f p >> freeConfig p
 withLoadedConfig s f = alloca $ \p -> do
   withCString s (\cstr -> loadConfig p cstr)
   f p
+  freeConfig p
 
 withSection c needle f = do
   withCString needle $ \n -> do
@@ -94,7 +98,22 @@ withSection c needle f = do
       f (name, items)
   where peekvalues x = peekCString (key x) >>= \k -> peekCString (val x) >>= \v -> return $ (k,v)
 
+withNullableCString s f =
+  case length s of
+    0 -> f nullPtr
+    _ -> withCString s $ \cs -> f cs
+
+addToConfig c sect key val =
+  withNullableCString sect $ \csect ->
+    withNullableCString key $ \ckey ->
+      withNullableCString val $ \cval ->
+        configAdd c csect ckey cval
+
+saveConfig c filename = do
+  withCString filename $ \f -> do
+    saveConfigInternal c f
+
 main = do
   withLoadedConfig "test.conf" $ \c -> do
-    withSection c "Account" $ \s -> do
-      putStrLn $ show s
+    addToConfig c "Account" "foo" "bar"
+    withSection c "Account" $ \s -> putStrLn $ show s
