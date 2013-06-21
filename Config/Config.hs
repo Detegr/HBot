@@ -53,32 +53,32 @@ instance Storable CConfigSection where
     pokeByteOff ptr 12 c
     pokeByteOff ptr 16 d
 
-data Config = Config 
+data CConfig = CConfig 
   {
       sectionCount      :: CUInt,
       allocatedSections :: CUInt,
       sections          :: Ptr (Ptr CConfigSection)
   } deriving Show
 
-instance Storable Config where
+instance Storable CConfig where
   alignment _ = 8
   sizeOf _ = 16
   peek ptr = do
     a <- peekByteOff ptr 0
     b <- peekByteOff ptr 4
     c <- peekByteOff ptr 8
-    return $ Config a b c
-  poke ptr (Config a b c) = do
+    return $ CConfig a b c
+  poke ptr (CConfig a b c) = do
     pokeByteOff ptr 0 a
     pokeByteOff ptr 4 b
     pokeByteOff ptr 8 c
 
-foreign import ccall unsafe "config_init" initConfig :: Ptr Config -> IO()
-foreign import ccall unsafe "config_load" loadConfig :: Ptr Config -> CString -> IO()
-foreign import ccall unsafe "config_find_section" findSection :: Ptr Config -> CString -> IO(Ptr CConfigSection)
-foreign import ccall unsafe "config_add" configAdd :: Ptr Config -> CString -> CString -> CString -> IO()
-foreign import ccall unsafe "config_free" freeConfig :: Ptr Config -> IO()
-foreign import ccall unsafe "config_save" saveConfigInternal :: Ptr Config -> CString -> IO()
+foreign import ccall unsafe "config_init" initConfig :: Ptr CConfig -> IO()
+foreign import ccall unsafe "config_load" loadConfig :: Ptr CConfig -> CString -> IO()
+foreign import ccall unsafe "config_find_section" findSection :: Ptr CConfig -> CString -> IO(Ptr CConfigSection)
+foreign import ccall unsafe "config_add" configAdd :: Ptr CConfig -> CString -> CString -> CString -> IO()
+foreign import ccall unsafe "config_free" freeConfig :: Ptr CConfig -> IO()
+foreign import ccall unsafe "config_save" saveConfigInternal :: Ptr CConfig -> CString -> IO()
 
 withConfig f = alloca $ \p -> initConfig p >> f p >> freeConfig p
 withLoadedConfig s f = alloca $ \p -> do
