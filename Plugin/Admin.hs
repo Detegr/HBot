@@ -7,7 +7,6 @@ import Control.Monad
 configPath = "HBot.conf"
 
 createNew c h = do
-  putStrLn $ "Creating a new admin user " ++ (show h) ++ " to " ++ configPath
   addToConfig c "AdminUsers" (show h) ""
   saveConfig c configPath
 
@@ -17,9 +16,7 @@ isAuthorized c h = do
       then do
         createNew c h
         isAuthorized c h
-      else do
-        putStrLn $ show (map fst au)
-        return $ any authorized (map fst au)
+      else return $ any authorized (map fst au)
  where authorized x = x == (show h)
 
 adminCommand :: (MsgHost, [String], String) -> IO String
