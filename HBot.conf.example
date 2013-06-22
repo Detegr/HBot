@@ -1,0 +1,5 @@
+[Plugins]
+	!admin
+[!admin]
+	Function=adminCommand
+	Object=Plugin/Admin.o
