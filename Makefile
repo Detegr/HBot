@@ -9,7 +9,7 @@ all: $(COBJECTS)
 	ghc $(PLUGINS)
 	ghc $(SRC) $(COBJECTS)
 	# Dunno how to merge dependencies with ghc...
-	ld -r Config.o Config/config.o Plugin/Admin.o -o Plugin/Adminn.o
+	ld -r Config.o Parser.o Config/config.o Plugin/Admin.o -o Plugin/Adminn.o
 	mv Plugin/Adminn.o Plugin/Admin.o
 
 %.o: %.c %.h

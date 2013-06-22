@@ -2,19 +2,30 @@ module Admin(adminCommand) where
 
 import Config
 import Parser
+import Control.Monad
 
 configPath = "HBot.conf"
 
-isAuthorized fullhost = do
-  withLoadedConfig configPath $ \c -> do
-    withSection c "AdminUsers" $ \(_, au) -> do
-      any authorized (map snd au)
- where authorized u = u == fullhost
+createNew c h = do
+  putStrLn $ "Creating a new admin user " ++ (show h) ++ " to " ++ configPath
+  addToConfig c "AdminUsers" (show h) ""
+  saveConfig c configPath
+
+isAuthorized c h = do
+    au <- getSection c "AdminUsers"
+    if length au == 0
+      then do
+        createNew c h
+        isAuthorized c h
+      else do
+        putStrLn $ show (map fst au)
+        return $ any authorized (map fst au)
+ where authorized x = x == (show h)
 
 adminCommand :: (MsgHost, [String], String) -> IO String
-adminCommand ((MsgHost n u h),params,trailing) = do
-  authorized <- isAuthorized fullhost
-  case authorized of
-    Just x -> return "Authorized user!"
-    _      -> return "You're not authorized for admin commands!"
- where fullhost = n ++ u ++ h
+adminCommand (host,params,trailing) = do
+  withLoadedConfig configPath $ \c -> do
+    ok <- isAuthorized c host
+    if ok
+      then return $ "User authorized."
+      else return $ "You're not authorized to execute admin commands!"

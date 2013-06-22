@@ -5,7 +5,10 @@ module Parser(lineParser,MsgHost(..),Msg(..)) where
 import Text.Parsec
 import Text.Parsec.Text
 
-data MsgHost = MsgHost { nickName :: String, userName :: String, hostName :: String } deriving (Show, Eq)
+data MsgHost = MsgHost { nickName :: String, userName :: String, hostName :: String } deriving Eq
+instance Show MsgHost where
+  show h = (nickName h) ++ "!" ++ (userName h) ++ "@" ++ (hostName h)
+
 data Msg = Msg
   {
     prefix   :: Either String MsgHost,

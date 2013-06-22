@@ -1,4 +1,4 @@
-module Config (withConfig,withLoadedConfig,addToConfig,saveConfig,withSection) where
+module Config (withConfig,withLoadedConfig,addToConfig,saveConfig,getSection) where
 
 {-# LANGUAGE ForeignFunctionInterface #-}
 
@@ -17,7 +17,7 @@ data CConfigItem = CConfigItem
       val :: CString
   } deriving Show
 
-type ConfigItem = (String,String)
+type ConfigItem = (String, Maybe String)
 
 instance Storable CConfigItem where
   alignment _ = 8
@@ -89,17 +89,22 @@ withLoadedConfig s f = alloca $ \p -> do
   freeConfig p
   return val
 
-withSection c needle f = do
+getSection c needle = do
   withCString needle $ \n -> do
     section <- findSection c n
-    if section == nullPtr then return Nothing
+    if section == nullPtr then return []
     else do
       s <- peek section
       name <- peekCString (cname s)
       itemptrs <- peekArray (fromIntegral . citemsCount $ s) (citems s)
-      items <- mapM (peekvalues <=< peek) itemptrs
-      return $ Just (f (name, items))
-  where peekvalues x = peekCString (key x) >>= \k -> peekCString (val x) >>= \v -> return $ (k,v)
+      mapM (peekvalues <=< peek) itemptrs
+  where peekvalues x = do
+        k <- peekCString (key x)
+        case val x == nullPtr of
+          True  -> return $ (k, Nothing)
+          False -> do
+            v <- peekCString (val x)
+            return $ (k, Just v)
 
 withNullableCString s f =
   case length s of

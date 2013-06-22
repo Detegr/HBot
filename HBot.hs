@@ -24,9 +24,9 @@ say h s = B.hPutStr h (ircStr s)
 
 handlePrivmsg hdl host params trailing plugins nick =
   case lookup cmd plugins of
-    Just p -> case fstp == nick of
-      True  -> usePluginIO p (host, params, trailing) >>= \out -> say hdl $ privmsg fstp out
-      False -> return ()
+    Just p -> usePluginIO p (host, params, trailing) >>= \out -> do
+      if fstp == nick then say hdl $ privmsg (nickName host) out
+                      else say hdl $ privmsg fstp out
     _      -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
         cmd  = Data.List.head . Data.List.words $ trailing
