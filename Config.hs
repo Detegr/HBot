@@ -1,3 +1,5 @@
+module Config (withConfig,withLoadedConfig,addToConfig,saveConfig,withSection) where
+
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 import Foreign.C
@@ -83,19 +85,20 @@ foreign import ccall unsafe "config_save" saveConfigInternal :: Ptr CConfig -> C
 withConfig f = alloca $ \p -> initConfig p >> f p >> freeConfig p
 withLoadedConfig s f = alloca $ \p -> do
   withCString s (\cstr -> loadConfig p cstr)
-  f p
+  val <- f p
   freeConfig p
+  return val
 
 withSection c needle f = do
   withCString needle $ \n -> do
     section <- findSection c n
-    if section == nullPtr then return ()
+    if section == nullPtr then return Nothing
     else do
       s <- peek section
       name <- peekCString (cname s)
       itemptrs <- peekArray (fromIntegral . citemsCount $ s) (citems s)
       items <- mapM (peekvalues <=< peek) itemptrs
-      f (name, items)
+      return $ Just (f (name, items))
   where peekvalues x = peekCString (key x) >>= \k -> peekCString (val x) >>= \v -> return $ (k,v)
 
 withNullableCString s f =
@@ -112,8 +115,3 @@ addToConfig c sect key val =
 saveConfig c filename = do
   withCString filename $ \f -> do
     saveConfigInternal c f
-
-main = do
-  withLoadedConfig "test.conf" $ \c -> do
-    addToConfig c "Account" "foo" "bar"
-    withSection c "Account" $ \s -> putStrLn $ show s

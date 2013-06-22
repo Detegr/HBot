@@ -1,5 +1,4 @@
-module Plugin(initPlugins, runPlugin, Plugin(..)) where
-import Plugin.Wikla
+module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..)) where
 import System.Plugins.Hotswap
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String }
@@ -13,7 +12,3 @@ createPlugin :: PluginToLoad -> IO(String, Plugin a)
 createPlugin p = do
   plugin <- newPlugin (objname p) (includes p) (name p)
   return $ (command p, plugin)
-
-main = initPlugins >>= \p -> case lookup "!admin" p of
-                                  Just plg -> usePluginIO plg ["bar"]
-                                  _ -> putStrLn "not found"

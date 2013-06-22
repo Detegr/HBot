@@ -28,4 +28,4 @@ wiklaQuotes = [
         "Scala ei kuulu kurssiin."
     ]
 
-wiklaPlugin = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
+wiklaPlugin x = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i

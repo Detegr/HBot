@@ -1,12 +1,16 @@
-SRC=HBot Config/Config
+SRC=HBot
 CSRC=Config/config.c
 PLUGINNAMES=Admin Wikla
 PLUGINS=$(addprefix Plugin/,$(PLUGINNAMES))
+PLUGINOBJECTS=$(addsuffix .o,$(PLUGINS))
 COBJECTS=$(CSRC:.c=.o)
 
 all: $(COBJECTS)
-	ghc $(PLUGINS) -iConfig
+	ghc $(PLUGINS)
 	ghc $(SRC) $(COBJECTS)
+	# Dunno how to merge dependencies with ghc...
+	ld -r Config.o Config/config.o Plugin/Admin.o -o Plugin/Adminn.o
+	mv Plugin/Adminn.o Plugin/Admin.o
 
 %.o: %.c %.h
 	gcc -c -D_GNU_SOURCE -std=c99 $< -o $@
