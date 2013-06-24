@@ -1,4 +1,4 @@
-module Admin(adminCommand) where
+module Plugin.Admin(adminCommand) where
 
 import Config
 import Parser

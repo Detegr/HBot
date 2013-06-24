@@ -5,6 +5,7 @@ module Main where
 import Connection
 import Parser
 import Plugin
+import Plugin.Admin
 
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
@@ -17,16 +18,24 @@ import Data.Text.Encoding
 import qualified Data.Text.IO as T
 import System.IO
 import Data.Either.Utils
-import System.Plugins.Hotswap
 
 say :: Handle -> String -> IO()
 say h s = B.hPutStr h (ircStr s)
 
+pluginReturn hdl hostnick ownnick fstp ret
+  | fstp == ownnick = say hdl $ privmsg hostnick ret
+  | otherwise       = say hdl $ privmsg fstp ret
+
 handlePrivmsg hdl host params trailing plugins nick =
   case lookup cmd plugins of
-    Just p -> usePluginIO p (host, params, trailing) >>= \out -> do
-      if fstp == nick then say hdl $ privmsg (nickName host) out
-                      else say hdl $ privmsg fstp out
+    Just p -> usePluginIO p (host, params, trailing) >>= \ret ->
+      case cmd of
+        "!admin" -> do
+          let retcmd = Data.List.head . Data.List.words $ ret in
+            case retcmd of
+              "reloadPlugin" -> reloadPlugin (Data.List.tail . Data.List.words $ ret) plugins
+              _              -> pluginReturn hdl (nickName host) nick fstp ret
+        _        -> pluginReturn hdl (nickName host) nick fstp ret
     _      -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
         cmd  = Data.List.head . Data.List.words $ trailing

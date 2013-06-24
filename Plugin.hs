@@ -1,7 +1,7 @@
-module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..)) where
+module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), Plugin.reloadPlugin) where
 
 import Config
-import System.Plugins.Hotswap
+import System.Plugins.Hotswap as HS
 import Data.Maybe
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String }
@@ -28,8 +28,10 @@ initPlugins = do
     plugins' <- mapM (\p -> getPluginData c p) (map fst plugins)
     mapM createPlugin plugins'
 
-createPlugin :: PluginToLoad -> IO(String, Plugin a)
+createPlugin :: PluginToLoad -> IO(String, HS.Plugin a)
 createPlugin p = do
   putStrLn $ "Plugin: " ++ (show p)
-  plugin <- newPlugin (objname p) (includes p) (name p)
+  plugin <- HS.newPlugin (objname p) (includes p) (name p)
   return $ (command p, plugin)
+
+reloadPlugin p plugins = return undefined
