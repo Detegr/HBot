@@ -3,7 +3,6 @@ module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins, Pl
 import Config
 import System.Plugins.Hotswap as HS
 import Data.Maybe
-import Control.Monad
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String }
 instance Show PluginToLoad where

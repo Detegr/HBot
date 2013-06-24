@@ -7,12 +7,9 @@ import Parser
 import Plugin
 import Plugin.Admin
 
-import Network.Socket hiding(send, sendTo, recv, recvFrom)
-import Network.Socket.ByteString
 import qualified Data.ByteString as B
 import Data.List
 import Text.Parsec
-import Text.Parsec.Text
 import Data.Text
 import Data.Text.Encoding
 import qualified Data.Text.IO as T
