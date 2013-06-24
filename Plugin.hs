@@ -1,4 +1,4 @@
-module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..)) where
+module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins) where
 
 import Config
 import System.Plugins.Hotswap
@@ -22,11 +22,24 @@ getPluginData c p = do
   let obj  = fromMaybe "" (lookup "Object"  s')
   return $ PluginToLoad obj [] func p
 
+pluginsFromConfig c = do
+  plugins <- getSection c "Plugins"
+  mapM (\p -> getPluginData c p) (map fst plugins)
+
 initPlugins = do
   withLoadedConfig configPath $ \c -> do
-    plugins <- getSection c "Plugins"
-    plugins' <- mapM (\p -> getPluginData c p) (map fst plugins)
-    mapM createPlugin plugins'
+    plugins <- pluginsFromConfig c
+    mapM createPlugin plugins
+
+loadOrReload plugin oldplugins = do
+  case lookup (name plugin) oldplugins of
+    Just p  -> reloadPlugin p
+    Nothing -> createPlugin plugin >> return ()
+
+reloadPlugins oldplugins = do
+  withLoadedConfig configPath $ \c -> do
+    plugins <- pluginsFromConfig c
+    mapM_ (\p -> loadOrReload p oldplugins) plugins
 
 createPlugin :: PluginToLoad -> IO(String, Plugin a)
 createPlugin p = do
