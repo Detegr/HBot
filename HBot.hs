@@ -3,6 +3,7 @@
 module Main where
 
 import Connection
+import Config
 import Parser
 import Plugin
 import Plugin.Admin
@@ -15,7 +16,7 @@ import Data.Text.Encoding
 import qualified Data.Text.IO as T
 import System.IO
 import Data.Either.Utils
-import Control.Monad.Maybe
+import Data.Maybe
 
 say :: Handle -> String -> IO()
 say h s = B.hPutStr h (ircStr s)
@@ -56,13 +57,20 @@ loop c plugins = do
 
 data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
 
-connect :: ConfigSection -> MaybeT ConnectionData
-connect s = do
-  server <- lookup "Server" s
+getConnectionInfo :: [(String, Maybe String)] -> Maybe (String, Int, String, String)
+getConnectionInfo s = do
+  server <- lookup "Server"   s
+  port   <- lookup "Port"     s
+  nick   <- lookup "Nick"     s
+  name   <- lookup "RealName" s
+  case Data.List.length $ Data.List.filter isNothing [server,port,nick,name] of
+    0 -> return (fromJust server, read (fromJust port), fromJust nick, fromJust name)
+    _ -> Nothing
 
 main = do
   plugins <- initPlugins
   withLoadedConfig "HBot.conf" $ \conf -> do
     s <- getSection conf "Connection"
-    connection <- doConnection "irc.quakenet.org" 6667 "HBot" "Haskell bot"
-    loop connection plugins
+    case getConnectionInfo s of
+      Just (server,port,nick,name) -> doConnection server port nick name >>= \c -> loop c plugins
+      Nothing                      -> putStrLn "HBot.conf invalid. No connection information"
