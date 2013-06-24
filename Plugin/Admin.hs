@@ -1,4 +1,4 @@
-module Admin(adminCommand) where
+module Plugin.Admin(adminCommand) where
 
 import Config
 import Parser
@@ -19,10 +19,16 @@ isAuthorized c h = do
       else return $ any authorized (map fst au)
  where authorized x = x == (show h)
 
-adminCommand :: (MsgHost, [String], String) -> IO String
-adminCommand (host,params,trailing) = do
+adminCommand :: (MsgHost, [String], [String]) -> IO String
+adminCommand (host,params,args) = do
   withLoadedConfig configPath $ \c -> do
     ok <- isAuthorized c host
+    putStrLn $ show args
     if ok
-      then return $ "User authorized."
+      then return $ checkCommand args
       else return $ "You're not authorized to execute admin commands!"
+
+checkCommand args =
+  case head args of
+    "reloadPlugins" -> "reloadPlugins"
+    _               -> "No such command"

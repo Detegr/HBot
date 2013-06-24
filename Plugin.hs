@@ -1,8 +1,9 @@
-module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins) where
+module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins, PluginToLoad(..)) where
 
 import Config
-import System.Plugins.Hotswap
+import System.Plugins.Hotswap as HS
 import Data.Maybe
+import Control.Monad
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String }
 instance Show PluginToLoad where
@@ -31,18 +32,19 @@ initPlugins = do
     plugins <- pluginsFromConfig c
     mapM createPlugin plugins
 
-loadOrReload plugin oldplugins = do
+loadOrReload plugin oldplugins =
   case lookup (name plugin) oldplugins of
-    Just p  -> reloadPlugin p
-    Nothing -> createPlugin plugin >> return ()
+    Just p  -> HS.reloadPlugin p >> return (name plugin, p)
+    Nothing -> createPlugin plugin >>= \plg -> return plg
 
 reloadPlugins oldplugins = do
   withLoadedConfig configPath $ \c -> do
     plugins <- pluginsFromConfig c
-    mapM_ (\p -> loadOrReload p oldplugins) plugins
+    reloadedplugindata <- mapM (\p -> loadOrReload p oldplugins) plugins
+    return (plugins, reloadedplugindata)
 
-createPlugin :: PluginToLoad -> IO(String, Plugin a)
+createPlugin :: PluginToLoad -> IO(String, HS.Plugin a)
 createPlugin p = do
   putStrLn $ "Plugin: " ++ (show p)
-  plugin <- newPlugin (objname p) (includes p) (name p)
+  plugin <- HS.newPlugin (objname p) (includes p) (name p)
   return $ (command p, plugin)
