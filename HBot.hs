@@ -15,6 +15,7 @@ import Data.Text.Encoding
 import qualified Data.Text.IO as T
 import System.IO
 import Data.Either.Utils
+import Control.Monad.Maybe
 
 say :: Handle -> String -> IO()
 say h s = B.hPutStr h (ircStr s)
@@ -53,4 +54,15 @@ loop c plugins = do
   loop c plugins
  where parseInput s = parse lineParser "" $ decodeUtf8 s
 
-main = initPlugins >>= \plugins -> doConnection "irc.quakenet.org" 6667 "HBot" "Haskell bot" >>= \c -> loop c plugins
+data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
+
+connect :: ConfigSection -> MaybeT ConnectionData
+connect s = do
+  server <- lookup "Server" s
+
+main = do
+  plugins <- initPlugins
+  withLoadedConfig "HBot.conf" $ \conf -> do
+    s <- getSection conf "Connection"
+    connection <- doConnection "irc.quakenet.org" 6667 "HBot" "Haskell bot"
+    loop connection plugins

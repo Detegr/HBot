@@ -1,4 +1,4 @@
-module Config (withConfig,withLoadedConfig,addToConfig,saveConfig,getSection) where
+module Config (withConfig,withLoadedConfig,addToConfig,saveConfig,getSection,ConfigSection) where
 
 {-# LANGUAGE ForeignFunctionInterface #-}
 
