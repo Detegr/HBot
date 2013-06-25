@@ -3,6 +3,7 @@ module Admin(adminCommand) where
 import Config
 import Parser
 import Control.Monad
+import Connection
 
 configPath = "HBot.conf"
 
@@ -29,3 +30,8 @@ adminCommand (host,params,trailing) = do
     if ok
       then return $ "User authorized."
       else return $ "You're not authorized to execute admin commands!"
+
+checkCommand args =
+  case head args of
+    "reloadPlugins" -> "reloadPlugins"
+    _               -> PRIVMSG "No such command"

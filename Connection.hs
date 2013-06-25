@@ -9,11 +9,17 @@ import Debug.Trace
 import System.IO
 
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
+data Command a = PRIVMSG String String | PONG String | JOIN String
+instance Show (Command a) where
+  show (PRIVMSG a b) = "PRIVMSG " ++ a ++ " :" ++ b
+  show (PONG a)      = "PONG " ++ a
+  show (JOIN a)      = "JOIN " ++ a
 
 ircStr :: String -> UTF8.ByteString
 ircStr s = UTF8.fromString (s ++ "\r\n")
 
 privmsg to msg = "PRIVMSG " ++ to ++ " :" ++ msg
+join to = "JOIN " ++ to
 pong s = "PONG " ++ s
 
 connectionStrings :: String -> String -> [UTF8.ByteString]
