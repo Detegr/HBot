@@ -34,7 +34,7 @@ initPlugins = do
 loadOrReload plugin oldplugins =
   case lookup (name plugin) oldplugins of
     Just p  -> HS.reloadPlugin p >> return (name plugin, p)
-    Nothing -> createPlugin plugin >>= \plg -> return plg
+    Nothing -> createPlugin plugin
 
 reloadPlugins oldplugins = do
   withLoadedConfig configPath $ \c -> do

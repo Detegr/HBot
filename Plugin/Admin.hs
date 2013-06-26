@@ -20,16 +20,19 @@ isAuthorized c h = do
       else return $ any authorized (map fst au)
  where authorized x = x == (show h)
 
-adminCommand :: (MsgHost, [String], [String]) -> IO String
+adminCommand :: (MsgHost, [String], [String]) -> IO (Command String)
 adminCommand (host,params,args) = do
   withLoadedConfig configPath $ \c -> do
     ok <- isAuthorized c host
     putStrLn $ show args
     if ok
-      then return $ checkCommand args
-      else return $ "You're not authorized to execute admin commands!"
+      then return $ checkCommand args to
+      else return $ PRIVMSG "You're not authorized to execute admin commands!" to
+ where to = head params
 
-checkCommand args =
+checkCommand [] to = PRIVMSG "Admin plugin" to
+checkCommand args to =
   case head args of
-    "reloadPlugins" -> "reloadPlugins"
-    _               -> PRIVMSG "No such command"
+    "reloadPlugins" -> PRIVMSG "reloadPlugins" to
+    "join"          -> JOIN (head . tail $ args)
+    _               -> PRIVMSG "No such command" to

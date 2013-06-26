@@ -1,4 +1,4 @@
-module Connection(doConnection,ircStr,Connection(..),reconnect,pong,privmsg) where
+module Connection(doConnection,ircStr,Connection(..),reconnect,Command(..)) where
 
 import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
@@ -9,7 +9,7 @@ import Debug.Trace
 import System.IO
 
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
-data Command a = PRIVMSG String String | PONG String | JOIN String
+data Command a = PRIVMSG String String | PONG String | JOIN String deriving Eq
 instance Show (Command a) where
   show (PRIVMSG a b) = "PRIVMSG " ++ a ++ " :" ++ b
   show (PONG a)      = "PONG " ++ a

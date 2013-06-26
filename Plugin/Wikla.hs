@@ -1,5 +1,8 @@
 module Plugin.Wikla(wiklaPlugin) where
+
 import System.Random
+import Connection
+import Parser
 
 wiklaQuotes = [
         "Pääohjelman pahantahtoinen algoritmi.",
@@ -28,4 +31,7 @@ wiklaQuotes = [
         "Scala ei kuulu kurssiin."
     ]
 
-wiklaPlugin x = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
+wiklaQuote = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
+
+wiklaPlugin :: (MsgHost, String, [String]) -> IO (Command String)
+wiklaPlugin (h,_,_)  = wiklaQuote >>= \q -> return $ PRIVMSG q (nickName h)
