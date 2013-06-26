@@ -19,20 +19,22 @@ import Data.Either.Utils
 import Data.Maybe
 
 say :: Handle -> Command String -> IO()
-say h s = B.hPutStr h (ircStr . show $ s)
+say h s = do
+          B.hPutStr h (ircStr . show $ s)
+          putStrLn $ "Sent: " ++ (show s)
 
 handlePrivmsg hdl host params trailing plugins nick c =
   case lookup cmd plugins of
-    Just p -> usePluginIO p (host, params, args) >>= \ret ->
-      if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" fstp)
-        then reloadPlugins plugins >>= \(plugs, pdata) -> mapM_ (\pstr -> say hdl $ PRIVMSG (show pstr) fstp) plugs >> loop c pdata
+    Just p -> putStrLn ("Running plugin " ++ cmd) >>
+      usePluginIO p (host, params, args) >>= \ret ->
+      if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" hostnick)
+        then reloadPlugins plugins >>= \(plugs, pdata) -> 
+          mapM_ (\pstr -> say hdl $ PRIVMSG (show pstr) hostnick) plugs >> loop c pdata
         else say hdl ret
     _      -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
         cmd  = Data.List.head . Data.List.words $ trailing
-        fstp = Data.List.head params
         hostnick = nickName host
-        pluginargs = (hdl, hostnick, nick, fstp)
 
 handleMsg (Msg pr c p t) (Connection a port n r h) plugins
   | pr == Left "PING" = say h $ PONG (fromLeft c)

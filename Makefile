@@ -10,9 +10,9 @@ all: $(COBJECTS)
 	ghc $(SRC) $(COBJECTS)
 	# Dunno how to merge dependencies with ghc...
 	ld -r Connection.o Config.o Parser.o Config/config.o Plugin/Admin.o -o Plugin/Admin.o.tmp
-	ld -r Connection.o Parser.o Plugin/Wikla.o -o Plugin/Wikla.o.tmp
+	#ld -r Plugin/Wikla.o -o Plugin/Wikla.o.tmp
 	mv Plugin/Admin.o.tmp Plugin/Admin.o
-	mv Plugin/Wikla.o.tmp Plugin/Wikla.o
+	#mv Plugin/Wikla.o.tmp Plugin/Wikla.o
 
 %.o: %.c %.h
 	gcc -c -D_GNU_SOURCE -std=c99 $< -o $@
