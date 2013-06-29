@@ -1,6 +1,6 @@
 SRC=HBot
 CSRC=Config/config.c
-PLUGINNAMES=Admin Wikla
+PLUGINNAMES=Admin Wikla Random
 PLUGINS=$(addprefix Plugin/,$(PLUGINNAMES))
 PLUGINOBJECTS=$(addsuffix .o,$(PLUGINS))
 COBJECTS=$(CSRC:.c=.o)

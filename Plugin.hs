@@ -32,18 +32,21 @@ initPlugins = do
     mapM createPlugin plugins
 
 loadOrReload plugin oldplugins =
-  case lookup (name plugin) oldplugins of
-    Just p  -> HS.reloadPlugin p >> return (name plugin, p)
+  case lookup (command plugin) oldplugins of
+    Just p  -> do
+      HS.reloadPlugin p
+      putStrLn $ "Plugin " ++ (name plugin) ++ " reloaded."
+      return (command plugin, p)
     Nothing -> createPlugin plugin
 
 reloadPlugins oldplugins = do
   withLoadedConfig configPath $ \c -> do
     plugins <- pluginsFromConfig c
     reloadedplugindata <- mapM (\p -> loadOrReload p oldplugins) plugins
-    return (plugins, reloadedplugindata)
+    return reloadedplugindata
 
 createPlugin :: PluginToLoad -> IO(String, HS.Plugin a)
 createPlugin p = do
   putStrLn $ "Plugin: " ++ (show p)
   plugin <- HS.newPlugin (objname p) (includes p) (name p)
-  return $ (command p, plugin)
+  return (command p, plugin)

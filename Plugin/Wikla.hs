@@ -34,4 +34,4 @@ wiklaQuotes = [
 wiklaQuote = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
 
 wiklaPlugin :: (MsgHost, [String], String) -> IO (Command String)
-wiklaPlugin (_,p,_)  = wiklaQuote >>= \q -> return $ PRIVMSG q (head p)
+wiklaPlugin (host,p,_)  = wiklaQuote >>= \q -> return $ PRIVMSG q (head p)

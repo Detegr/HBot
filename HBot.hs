@@ -28,8 +28,7 @@ handlePrivmsg hdl host params trailing plugins nick c =
     Just p -> putStrLn ("Running plugin " ++ cmd) >>
       usePluginIO p (host, params, args) >>= \ret ->
       if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" hostnick)
-        then reloadPlugins plugins >>= \(plugs, pdata) -> 
-          mapM_ (\pstr -> say hdl $ PRIVMSG (show pstr) hostnick) plugs >> loop c pdata
+        then reloadPlugins plugins >>= loop c
         else say hdl ret
     _      -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
