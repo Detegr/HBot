@@ -11,7 +11,7 @@ import System.IO
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
 data Command a = PRIVMSG String String | PONG String | JOIN String deriving Eq
 instance Show (Command a) where
-  show (PRIVMSG a b) = "PRIVMSG " ++ a ++ " :" ++ b
+  show (PRIVMSG msg to) = "PRIVMSG " ++ to ++ " :" ++ msg
   show (PONG a)      = "PONG " ++ a
   show (JOIN a)      = "JOIN " ++ a
 
