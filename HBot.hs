@@ -56,15 +56,12 @@ loop c plugins = do
 
 data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
 
-getConnectionInfo :: [(String, Maybe String)] -> Maybe (String, Int, String, String)
 getConnectionInfo s = do
   server <- lookup "Server"   s
   port   <- lookup "Port"     s
   nick   <- lookup "Nick"     s
   name   <- lookup "RealName" s
-  case Data.List.length $ Data.List.filter isNothing [server,port,nick,name] of
-    0 -> return (fromJust server, read (fromJust port), fromJust nick, fromJust name)
-    _ -> Nothing
+  return (fromJust server, read (fromJust port), fromJust nick, fromJust name)
 
 main = do
   plugins <- initPlugins
@@ -72,4 +69,4 @@ main = do
     s <- getSection conf "Connection"
     case getConnectionInfo s of
       Just (server,port,nick,name) -> doConnection server port nick name >>= \c -> loop c plugins
-      Nothing                      -> putStrLn "HBot.conf invalid. No connection information"
+      Nothing                      -> putStrLn "HBot.conf invalid. No connection information."
