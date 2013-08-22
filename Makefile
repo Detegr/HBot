@@ -1,6 +1,7 @@
 SRC=HBot
 CSRC=Config/config.c
 PLUGINNAMES=Admin Wikla Random
+# Unicafe
 PLUGINS=$(addprefix Plugin/,$(PLUGINNAMES))
 PLUGINOBJECTS=$(addsuffix .o,$(PLUGINS))
 COBJECTS=$(CSRC:.c=.o)
