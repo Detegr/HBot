@@ -4,7 +4,7 @@ import Config
 import System.Plugins.Hotswap as HS
 import Control.Monad.Reader
 import Control.Exception (try, SomeException)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromJust)
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where
@@ -15,14 +15,13 @@ configPath = "HBot.conf"
 
 getPluginData :: String -> ConfigM PluginToLoad
 getPluginData p = do
-  liftIO $ putStrLn $ "Getting section " ++ p
   s <- getSection p
-  liftIO $ putStrLn $ "Got section " ++ p
   case s of
     Just sect -> do
-      Just (funcname,_) <- getItem "Function" (Just $ sectionName sect)
-      Just (key,_) <- getItem "Object" (Just $ sectionName sect)
-      return $ PluginToLoad key [] funcname (sectionName sect)
+      -- TODO: Handle fromJusts
+      Just (_,funcname) <- getItem "Function" (Just $ sectionName sect)
+      Just (_,obj) <- getItem "Object" (Just $ sectionName sect)
+      return $ PluginToLoad (fromJust obj) [] (fromJust funcname) (sectionName sect)
     Nothing -> return $ PluginError p
 
 pluginsFromConfig :: ConfigM [PluginToLoad]
