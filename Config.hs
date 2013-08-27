@@ -11,7 +11,8 @@ module Config (withConfig,
                ConfigSection(..),
                ConfigItem,
                Config,
-               getSectionKeys) where
+               getSectionKeys,
+               ConfigM) where
 
 import Foreign.C
 import Foreign.C.String
@@ -22,6 +23,8 @@ import Foreign.Storable
 import Control.Monad
 import Data.String.Utils
 import Control.Monad.Reader
+
+type ConfigM a = ReaderT (Ptr CConfig, String) IO a
 
 data CConfigItem = CConfigItem
   {
