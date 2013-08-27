@@ -48,7 +48,7 @@ handleMsg (Msg pr c p t) (Connection a port n r h) plugins
 loop plugins c = do
   str <- B.hGetLine (handle c)
   case decodeUtf8' str of
-    Left err  -> loop plugins c
+    Left  _    -> loop plugins c
     Right text -> do
       case parseInput text of
         Left err  -> putStrLn $ show err
@@ -60,6 +60,7 @@ loop plugins c = do
 
 data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
 
+getHBotConf :: IO(Maybe(String, Int, String, String))
 getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
   let jc=Just "Connection"
   server <- lift $ getItem "Server"   jc
@@ -73,6 +74,7 @@ getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
   return (getValue server, read . getValue $ port, getValue nick, getValue name)
  where getValue = fromJust . snd . fromJust
 
+main :: IO()
 main = do
   plugins <- initPlugins
   conf <- getHBotConf
