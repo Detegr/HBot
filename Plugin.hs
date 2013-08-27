@@ -3,46 +3,43 @@ module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins, Pl
 import Config
 import System.Plugins.Hotswap as HS
 import Data.Maybe
+import Control.Monad.Reader
 
-data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String }
+data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where
   show (PluginToLoad obj inc name cmd) = "Name: " ++ name ++ ", Command: " ++ cmd ++ ", Object: " ++ obj
 
 configPath = "HBot.conf"
 
-convertMaybe (a,b) =
-  case b of
-    Just x  -> (a,x)
-    Nothing -> (a,"")
+getPluginData p = do
+  s <- getSection p
+  case s of
+    Just s -> do
+      Just (funcname,_) <- getItem "Function" (Just $ sectionName s)
+      Just (key,val) <- getItem "Object" (Just $ sectionName s)
+      return $ PluginToLoad key [] funcname (sectionName s)
+    Nothing -> return $ PluginError p
 
-getPluginData c p = do
-  s <- getSection c p
-  let s' = map convertMaybe s
-  let func = fromMaybe "" (lookup "Function" s')
-  let obj  = fromMaybe "" (lookup "Object"  s')
-  return $ PluginToLoad obj [] func p
-
-pluginsFromConfig c = do
-  plugins <- getSection c "Plugins"
-  mapM (\p -> getPluginData c p) (map fst plugins)
+pluginsFromConfig = mapM getPluginData =<< getSectionKeys "Plugins"
 
 initPlugins = do
-  withLoadedConfig configPath $ \c -> do
-    plugins <- pluginsFromConfig c
-    mapM createPlugin plugins
+  withLoadedConfig configPath $ do
+    plugins <- pluginsFromConfig
+    return $ mapM createPlugin plugins
 
+loadOrReload :: PluginToLoad -> [(String, Plugin a)] -> IO(String, Plugin a)
 loadOrReload plugin oldplugins =
   case lookup (command plugin) oldplugins of
-    Just p  -> do
+    Just p -> do
       HS.reloadPlugin p
       putStrLn $ "Plugin " ++ (name plugin) ++ " reloaded."
       return (command plugin, p)
     Nothing -> createPlugin plugin
 
-reloadPlugins oldplugins = do
-  withLoadedConfig configPath $ \c -> do
-    plugins <- pluginsFromConfig c
-    reloadedplugindata <- mapM (\p -> loadOrReload p oldplugins) plugins
+reloadPlugins oldplugins =
+  withLoadedConfig configPath $ do
+    plugins <- pluginsFromConfig
+    reloadedplugindata <- liftIO $ mapM (\p -> loadOrReload p oldplugins) plugins
     return reloadedplugindata
 
 createPlugin :: PluginToLoad -> IO(String, HS.Plugin a)

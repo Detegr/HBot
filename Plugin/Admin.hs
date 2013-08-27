@@ -7,23 +7,20 @@ import Connection
 
 configPath = "HBot.conf"
 
-createNew c h = do
-  addToConfig c "AdminUsers" (show h) ""
-  saveConfig c configPath
 
-isAuthorized c h = do
-    au <- getSection c "AdminUsers"
-    if length au == 0
-      then do
-        createNew c h
-        isAuthorized c h
-      else return $ any authorized (map fst au)
+isAuthorized h = do
+    au <- getSection "AdminUsers"
+    case au of
+      Nothing -> do
+        addItem "AdminUsers" (show h) ""
+        isAuthorized h
+      Just au -> return $ any authorized (map fst $ sectionItems au)
  where authorized x = x == (show h)
 
 adminCommand :: (MsgHost, [String], [String]) -> IO (Command String)
 adminCommand (host,params,args) = do
-  withLoadedConfig configPath $ \c -> do
-    ok <- isAuthorized c host
+  withLoadedConfig configPath $ do
+    ok <- isAuthorized host
     if ok
       then return $ checkCommand args to
       else return $ PRIVMSG "You're not authorized to execute admin commands!" to

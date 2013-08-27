@@ -17,6 +17,10 @@ import qualified Data.Text.IO as T
 import System.IO
 import Data.Either.Utils
 import Data.Maybe
+import Control.Monad.Reader (liftIO, ReaderT)
+import Control.Monad.Trans
+import Control.Monad.Trans.Maybe
+import Control.Monad (guard)
 
 say :: Handle -> Command String -> IO()
 say h s = do
@@ -28,7 +32,7 @@ handlePrivmsg hdl host params trailing plugins nick c =
     Just p -> putStrLn ("Running plugin " ++ cmd) >>
       usePluginIO p (host, params, args) >>= \ret ->
       if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" hostnick)
-        then reloadPlugins plugins >>= loop c
+        then reloadPlugins plugins >>= flip loop c
         else say hdl ret
     _      -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
@@ -37,36 +41,41 @@ handlePrivmsg hdl host params trailing plugins nick c =
 
 handleMsg (Msg pr c p t) (Connection a port n r h) plugins
   | pr == Left "PING" = say h $ PONG (fromLeft c)
-  | t == "Nickname is already in use." = reconnect (Connection a port (n ++ "_") r h) >>= \c -> loop c plugins
+  | t == "Nickname is already in use." = reconnect (Connection a port (n ++ "_") r h) >>= loop plugins
   | c == Left "PRIVMSG" = handlePrivmsg h (fromRight pr) p t plugins n (Connection a port n r h)
   | otherwise = return ()
 
-loop c plugins = do
+loop plugins c = do
   str <- B.hGetLine (handle c)
   case decodeUtf8' str of
-    Left err  -> loop c plugins
+    Left err  -> loop plugins c
     Right text -> do
       case parseInput text of
         Left err  -> putStrLn $ show err
         Right val -> do
           putStrLn $ show val
           handleMsg val c plugins
-      loop c plugins
+      loop plugins c
  where parseInput s = parse lineParser "" s
 
 data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
 
-getConnectionInfo s = do
-  server <- lookup "Server"   s
-  port   <- lookup "Port"     s
-  nick   <- lookup "Nick"     s
-  name   <- lookup "RealName" s
-  return (fromJust server, read (fromJust port), fromJust nick, fromJust name)
+getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
+  let jc=Just "Connection"
+  server <- lift $ getItem "Server"   jc
+  port   <- lift $ getItem "Port"     jc
+  nick   <- lift $ getItem "Nick"     jc
+  name   <- lift $ getItem "RealName" jc
+  let arr=[server,port,nick,name]
+  mapM_ (guard . isJust) arr
+  mbvalues <- mapM (return . snd . fromJust) arr
+  mapM_ (guard . isJust) mbvalues
+  return (getValue server, read . getValue $ port, getValue nick, getValue name)
+ where getValue = fromJust . snd . fromJust
 
 main = do
   plugins <- initPlugins
-  withLoadedConfig "HBot.conf" $ \conf -> do
-    s <- getSection conf "Connection"
-    case getConnectionInfo s of
-      Just (server,port,nick,name) -> doConnection server port nick name >>= \c -> loop c plugins
-      Nothing                      -> putStrLn "HBot.conf invalid. No connection information."
+  conf <- getHBotConf
+  case conf of
+    Just (server,port,nick,name)  -> doConnection server port nick name >>= loop plugins
+    Nothing                       -> putStrLn "HBot.conf invalid. No connection information."
