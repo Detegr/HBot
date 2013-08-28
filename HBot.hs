@@ -27,6 +27,7 @@ say h s = do
           B.hPutStr h (ircStr . show $ s)
           putStrLn $ "Sent: " ++ (show s)
 
+handlePrivmsg :: Handle -> MsgHost -> [String] -> String -> [(String, HBotPlugin)] -> String -> Connection -> IO()
 handlePrivmsg hdl host params trailing plugins nick c =
   case lookup cmd plugins of
     Just p -> putStrLn ("Running plugin " ++ cmd) >>
@@ -39,12 +40,14 @@ handlePrivmsg hdl host params trailing plugins nick c =
         cmd  = Data.List.head . Data.List.words $ trailing
         hostnick = nickName host
 
+handleMsg :: Msg -> Connection -> [(String, HBotPlugin)] -> IO()
 handleMsg (Msg pr c p t) (Connection a port n r h) plugins
   | pr == Left "PING" = say h $ PONG (fromLeft c)
   | t == "Nickname is already in use." = reconnect (Connection a port (n ++ "_") r h) >>= loop plugins
   | c == Left "PRIVMSG" = handlePrivmsg h (fromRight pr) p t plugins n (Connection a port n r h)
   | otherwise = return ()
 
+loop :: [(String, HBotPlugin)] -> Connection -> IO()
 loop plugins c = do
   str <- B.hGetLine (handle c)
   case decodeUtf8' str of
@@ -57,8 +60,6 @@ loop plugins c = do
           handleMsg val c plugins
       loop plugins c
  where parseInput s = parse lineParser "" s
-
-data ConnectionData = ConnectionData { server :: String, port :: Int, nick :: String, name :: String }
 
 getHBotConf :: IO(Maybe(String, Int, String, String))
 getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
