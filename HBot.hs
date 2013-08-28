@@ -10,7 +10,7 @@ import Plugin.Admin
 
 import qualified Data.ByteString as B
 import Data.List
-import Text.Parsec
+import Text.Parsec hiding (State)
 import Data.Text
 import Data.Text.Encoding
 import qualified Data.Text.IO as T
@@ -21,53 +21,68 @@ import Control.Monad.Reader (liftIO, ReaderT)
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 import Control.Monad (guard)
+import Control.Monad.State
+
+type HBotState = ([(String, HBotPlugin)], Connection)
 
 say :: Handle -> Command String -> IO()
 say h s = do
           B.hPutStr h (ircStr . show $ s)
           putStrLn $ "Sent: " ++ (show s)
 
-handlePrivmsg :: Handle -> MsgHost -> [String] -> String -> [(String, HBotPlugin)] -> String -> Connection -> IO()
-handlePrivmsg hdl host params trailing plugins nick c =
+handlePrivmsg :: MsgHost -> [String] -> String -> StateT HBotState IO()
+handlePrivmsg host params trailing = do
+  (plugins, c) <- get
   case lookup cmd plugins of
-    Just p -> putStrLn ("Running plugin " ++ cmd) >>
-      usePluginIO p (host, params, args) >>= \ret ->
+    Just p -> do
+      ret <- liftIO $ do
+        putStrLn ("Running plugin " ++ cmd)
+        usePluginIO p (host, params, args)
       if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" hostnick)
-        then reloadPlugins plugins >>= flip loop c
-        else say hdl ret
-    _      -> return ()
+        then do
+          newplugins <- liftIO $ reloadPlugins plugins
+          put (newplugins, c)
+          loop
+        else liftIO $ say (handle c) ret
+    _ -> return ()
   where args = Data.List.tail . Data.List.words $ trailing
         cmd  = Data.List.head . Data.List.words $ trailing
         hostnick = nickName host
 
-handleMsg :: Msg -> Connection -> [(String, HBotPlugin)] -> IO()
-handleMsg (Msg pr c p t) (Connection a port n r h) plugins
-  | pr == Left "PING" = say h $ PONG (fromLeft c)
-  | t == "Nickname is already in use." = reconnect (Connection a port (n ++ "_") r h) >>= loop plugins
-  | c == Left "PRIVMSG" = handlePrivmsg h (fromRight pr) p t plugins n (Connection a port n r h)
+handleMsg :: Msg -> StateT HBotState IO()
+handleMsg (Msg pr c p t)
+  | pr == Left "PING" = do
+    (_,conn) <- get
+    liftIO $ say (handle conn) $ PONG (fromLeft c)
+  | t == "Nickname is already in use." = do
+    (plugins, (Connection a port n r h)) <- get
+    newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
+    put (plugins, newconn)
+    loop
+  | c == Left "PRIVMSG" = handlePrivmsg (fromRight pr) p t
   | otherwise = return ()
 
-loop :: [(String, HBotPlugin)] -> Connection -> IO()
-loop plugins c = do
-  str <- B.hGetLine (handle c)
+loop :: StateT HBotState IO()
+loop = do
+  (_,c) <- get
+  str <- liftIO $ B.hGetLine (handle c)
   case decodeUtf8' str of
-    Left  _    -> loop plugins c
+    Left  _    -> loop
     Right text -> do
       case parseInput text of
-        Left err  -> putStrLn $ show err
+        Left err  -> liftIO $ putStrLn $ show err
         Right val -> do
-          putStrLn $ show val
-          handleMsg val c plugins
-      loop plugins c
+          liftIO $ putStrLn $ show val
+          handleMsg val
+      loop
  where parseInput s = parse lineParser "" s
 
 getHBotConf :: IO(Maybe(String, Int, String, String))
 getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
-  let jc=Just "Connection"
-  server <- lift $ getItem "Server"   jc
-  port   <- lift $ getItem "Port"     jc
-  nick   <- lift $ getItem "Nick"     jc
-  name   <- lift $ getItem "RealName" jc
+  server <- lift $ getItem "Server"   (Just "Connection")
+  port   <- lift $ getItem "Port"     (Just "Connection")
+  nick   <- lift $ getItem "Nick"     (Just "Connection")
+  name   <- lift $ getItem "RealName" (Just "Connection")
   let arr=[server,port,nick,name]
   mapM_ (guard . isJust) arr
   mbvalues <- mapM (return . snd . fromJust) arr
@@ -80,5 +95,8 @@ main = do
   plugins <- initPlugins
   conf <- getHBotConf
   case conf of
-    Just (server,port,nick,name)  -> doConnection server port nick name >>= loop plugins
-    Nothing                       -> putStrLn "HBot.conf invalid. No connection information."
+    Just (server,port,nick,name) -> do
+      c <- doConnection server port nick name
+      runStateT loop (plugins, c)
+      return ()
+    Nothing -> putStrLn "HBot.conf invalid. No connection information."
