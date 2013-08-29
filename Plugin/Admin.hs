@@ -4,9 +4,9 @@ import Config
 import Parser
 import Control.Monad
 import Connection
+import PluginData
 
 configPath = "HBot.conf"
-
 
 isAuthorized h = do
     au <- getSection "AdminUsers"
@@ -17,20 +17,18 @@ isAuthorized h = do
       Just au -> return $ any authorized (map fst $ sectionItems au)
  where authorized x = x == (show h)
 
-adminCommand :: (MsgHost, [String], [String]) -> IO (Command String)
-adminCommand (host,params,args) = do
-  withLoadedConfig configPath $ do
-    ok <- isAuthorized host
-    if ok
-      then return $ checkCommand args to
-      else return $ PRIVMSG "You're not authorized to execute admin commands!" to
- where to = nickName host
+adminCommand :: PluginData -> IO PluginResult
+adminCommand pd = do
+  ok <- withLoadedConfig configPath $ isAuthorized (host pd)
+  if ok
+    then checkCommand (arguments pd) pd
+    else msgToNick pd "You're not authorized to execute admin commands!"
 
-checkCommand [] to = PRIVMSG "Admin plugin" to
-checkCommand args to =
+checkCommand [] pd = msgToNick pd "Admin plugin"
+checkCommand args pd =
   case head args of
-    "reloadPlugins" -> PRIVMSG "reloadPlugins" to
+    "reloadPlugins" -> msgToNick pd "reloadPlugins"
     "join"          -> if length args > 1
-                         then JOIN (head . tail $ args)
-                         else PRIVMSG "!admin join takes one parameter" to
-    _               -> PRIVMSG "No such command" to
+                         then cmd Join (head . tail $ args)
+                         else msgToNick pd "!admin join takes one parameter"
+    _               -> msgToNick pd "No such command"

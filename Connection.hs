@@ -1,4 +1,5 @@
-module Connection(doConnection,ircStr,Connection(..),reconnect,Command(..)) where
+{-# LANGUAGE FlexibleInstances #-}
+module Connection(doConnection,ircStr,Connection(..),reconnect,Command(..),CommandType(..)) where
 
 import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
@@ -9,11 +10,12 @@ import Debug.Trace
 import System.IO
 
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
-data Command a = PRIVMSG String String | PONG String | JOIN String deriving Eq
-instance Show (Command a) where
-  show (PRIVMSG msg to) = "PRIVMSG " ++ to ++ " :" ++ msg
-  show (PONG a)      = "PONG " ++ a
-  show (JOIN a)      = "JOIN " ++ a
+data CommandType a = Message String | Pong | Join
+data Command t a = Command t String deriving Eq
+instance Show (Command (CommandType t) a) where
+  show (Command (Message to) msg) = "PRIVMSG " ++ to ++ " :" ++ msg
+  show (Command Pong a)      = "PONG " ++ a
+  show (Command Join a)      = "JOIN " ++ a
 
 ircStr :: String -> UTF8.ByteString
 ircStr s = UTF8.fromString (s ++ "\r\n")

@@ -1,14 +1,12 @@
 module Plugin(initPlugins, usePlugin, usePluginIO, Plugin(..), reloadPlugins, PluginToLoad(..), HBotPlugin) where
 
 import Config
+import PluginData
 import Parser (MsgHost)
-import Connection (Command)
 import System.Plugins.Hotswap as HS
 import Control.Monad.Reader
 import Control.Exception (try, SomeException)
 import Data.Maybe (catMaybes, fromJust)
-
-type HBotPlugin = Plugin ((MsgHost, [String], [String]) -> IO (Command String))
 
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where

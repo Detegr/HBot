@@ -3,6 +3,7 @@ module Plugin.Wikla(wiklaPlugin) where
 import System.Random
 import Connection
 import Parser
+import PluginData
 
 wiklaQuotes = [
         "Pääohjelman pahantahtoinen algoritmi.",
@@ -33,5 +34,5 @@ wiklaQuotes = [
 
 wiklaQuote = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
 
-wiklaPlugin :: (MsgHost, [String], String) -> IO (Command String)
-wiklaPlugin (host,p,_)  = wiklaQuote >>= \q -> return $ PRIVMSG q (head p)
+wiklaPlugin :: PluginData -> IO PluginResult
+wiklaPlugin pd = wiklaQuote >>= \q -> msgToNick pd q
