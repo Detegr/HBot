@@ -22,10 +22,11 @@ import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 import Control.Monad (guard)
 import Control.Monad.State
+import PluginData
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
-say :: Handle -> Command String -> IO()
+say :: Handle -> PluginResult -> IO()
 say h s = do
           B.hPutStr h (ircStr . show $ s)
           putStrLn $ "Sent: " ++ (show s)
@@ -38,7 +39,7 @@ handlePrivmsg host params trailing = do
       ret <- liftIO $ do
         putStrLn ("Running plugin " ++ cmd)
         usePluginIO p (host, params, args)
-      if cmd == "!admin" && ret == (PRIVMSG "reloadPlugins" hostnick)
+      if cmd == "!admin" && ret == (Command (Message "reloadPlugins") hostnick)
         then do
           newplugins <- liftIO $ reloadPlugins plugins
           put (newplugins, c)
@@ -53,7 +54,7 @@ handleMsg :: Msg -> StateT HBotState IO()
 handleMsg (Msg pr c p t)
   | pr == Left "PING" = do
     (_,conn) <- get
-    liftIO $ say (handle conn) $ PONG (fromLeft c)
+    liftIO $ say (handle conn) $ Command Pong (fromLeft c)
   | t == "Nickname is already in use." = do
     (plugins, (Connection a port n r h)) <- get
     newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)

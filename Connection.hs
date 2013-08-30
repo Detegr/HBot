@@ -10,7 +10,7 @@ import Debug.Trace
 import System.IO
 
 data Connection = Connection {address :: String, port :: Int, nick :: String, realname :: String, handle :: Handle}
-data CommandType a = Message String | Pong | Join
+data CommandType a = Message String | Pong | Join deriving Eq
 data Command t a = Command t String deriving Eq
 instance Show (Command (CommandType t) a) where
   show (Command (Message to) msg) = "PRIVMSG " ++ to ++ " :" ++ msg
