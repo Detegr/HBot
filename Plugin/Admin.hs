@@ -2,15 +2,16 @@ module Plugin.Admin(adminCommand) where
 
 import Config
 import Parser
-import Control.Monad
 import Connection
 import PluginData
 
+configPath :: String
 configPath = "HBot.conf"
 
+isAuthorized :: MsgHost -> ConfigM Bool
 isAuthorized h = do
-    au <- getSection "AdminUsers"
-    case au of
+    mbau <- getSection "AdminUsers"
+    case mbau of
       Nothing -> do
         addItem "AdminUsers" (show h) ""
         isAuthorized h
@@ -24,6 +25,7 @@ adminCommand pd = do
     then checkCommand (arguments pd) pd
     else msgToNick pd "You're not authorized to execute admin commands!"
 
+checkCommand :: [String] -> PluginData -> IO PluginResult
 checkCommand [] pd = msgToNick pd "Admin plugin"
 checkCommand args pd =
   case head args of

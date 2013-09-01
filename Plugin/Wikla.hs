@@ -1,10 +1,9 @@
 module Plugin.Wikla(wiklaPlugin) where
 
 import System.Random
-import Connection
-import Parser
 import PluginData
 
+wiklaQuotes :: [String]
 wiklaQuotes = [
         "Pääohjelman pahantahtoinen algoritmi.",
         "...tai kutsua metodia joka käynnistää kolmannen maailmansodan.",
@@ -32,6 +31,7 @@ wiklaQuotes = [
         "Scala ei kuulu kurssiin."
     ]
 
+wiklaQuote :: IO String
 wiklaQuote = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
 
 wiklaPlugin :: PluginData -> IO PluginResult

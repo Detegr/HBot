@@ -8,6 +8,7 @@ import Control.Monad.Reader
 import Control.Exception (try, SomeException)
 import Data.Maybe (catMaybes, fromJust)
 
+type HBotPlugin = Plugin ((MsgHost, [String], [String]) -> IO PluginResult)
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where
   show (PluginToLoad obj _ name cmd) = "Name: " ++ name ++ ", Command: " ++ cmd ++ ", Object: " ++ obj

@@ -1,14 +1,10 @@
 module PluginData where
 
 import Parser (MsgHost(..))
-import Connection(Command)
-import System.Plugins.Hotswap
-import Control.Monad.Reader
 import Connection
 
 type PluginResult = (Command (CommandType String) String)
 type PluginData = (MsgHost, [String], [String])
-type HBotPlugin = Plugin ((MsgHost, [String], [String]) -> IO PluginResult)
 
 getChannel :: PluginData -> String
 getChannel (_,p,_) = head p

@@ -13,7 +13,7 @@ data Connection = Connection {address :: String, port :: Int, nick :: String, re
 data CommandType a = Message String | Pong | Join deriving Eq
 data Command t a = Command t String deriving Eq
 instance Show (Command (CommandType t) a) where
-  show (Command (Message to) msg) = "PRIVMSG " ++ to ++ " :" ++ msg
+  show (Command (Message msg) to) = "PRIVMSG " ++ to ++ " :" ++ msg
   show (Command Pong a)      = "PONG " ++ a
   show (Command Join a)      = "JOIN " ++ a
 
