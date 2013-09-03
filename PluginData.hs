@@ -15,11 +15,20 @@ getNick (h,_,_) = nickName h
 msgTo :: String -> String -> IO PluginResult
 msgTo to f = return $ Command (Message f) to
 
+msgsTo :: String -> [String] -> IO PluginResult
+msgsTo to f = return $ Command (Messages f) to
+
 msgToNick :: PluginData -> String -> IO PluginResult
 msgToNick pd f = msgTo (getNick pd) f
 
+msgsToNick :: PluginData -> [String] -> IO PluginResult
+msgsToNick pd f = msgsTo (getNick pd) f
+
 msgToChannel :: PluginData -> String -> IO PluginResult
 msgToChannel pd f = msgTo (getChannel pd) f
+
+msgsToChannel :: PluginData -> [String] -> IO PluginResult
+msgsToChannel pd f = msgsTo (getChannel pd) f
 
 cmd :: CommandType String -> String -> IO PluginResult
 cmd ctype to = return $ Command ctype to

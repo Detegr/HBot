@@ -10,7 +10,7 @@ import Plugin.Admin
 
 import qualified Data.ByteString as B
 import Data.List
-import Text.Parsec hiding (State)
+import Text.Parsec (parse)
 import Data.Text
 import Data.Text.Encoding
 import qualified Data.Text.IO as T
@@ -23,6 +23,7 @@ import Control.Monad.Trans.Maybe
 import Control.Monad (guard)
 import Control.Monad.State
 import PluginData
+import Control.Exception (try, SomeException)
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
@@ -65,17 +66,22 @@ handleMsg (Msg pr c p t)
 
 loop :: StateT HBotState IO()
 loop = do
-  (_,c) <- get
-  str <- liftIO $ B.hGetLine (handle c)
-  case decodeUtf8' str of
-    Left  _    -> loop
-    Right text -> do
-      case parseInput text of
-        Left err  -> liftIO $ putStrLn $ show err
-        Right val -> do
-          liftIO $ putStrLn $ show val
-          handleMsg val
-      loop
+  (plugins,c) <- get
+  line <- liftIO (try $ B.hGetLine (handle c) :: IO (Either IOError B.ByteString))
+  case line of
+    Left _ -> do
+      newconn <- liftIO $ reconnect c
+      put (plugins,c)
+    Right str ->
+      case decodeUtf8' str of
+        Left  _    -> return ()
+        Right text -> do
+          case parseInput text of
+            Left err  -> liftIO $ putStrLn $ show err
+            Right val -> do
+              liftIO $ putStrLn $ show val
+              handleMsg val
+  loop
  where parseInput s = parse lineParser "" s
 
 getHBotConf :: IO(Maybe(String, Int, String, String))

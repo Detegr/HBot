@@ -1,23 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 
---module Plugin.Random(randomQuote) where
+module Plugin.Unicafe(unicafe) where
 
-import Text.HTML.TagSoup hiding (renderTags)
+import Text.HTML.TagSoup hiding (parseTags, renderTags)
 import Text.HTML.TagSoup.Fast.Utf8Only
 import qualified Data.Text as T
 import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn)
 import Network.HTTP
-import Text.Regex.TDFA.Text
-import Text.Regex.Base.RegexLike
 import Text.Parsec
 import Text.Parsec.Text
 import Control.Monad
 import Data.Dates
 import Data.Time.Calendar.WeekDate (toWeekDate)
 import qualified Data.Text.IO (putStrLn)
+import Data.List (foldl')
 
---import Parser
---import Connection
+import Parser
+import Connection
+import PluginData
 
 data Restaurant = Metsatalo | Olivia | Porthania | Paarakennus | Rotunda | SocKom | Topelias | Valtiotiede | Ylioppilasaukio |
                   Kookos | Chemicum | Exactum | Physicum | Meilahti | Ruskeasuo | Biokeskus | Korona | Viikuna
@@ -75,7 +75,7 @@ foodParser = do
     many $ noneOf ")"
     char ')'
     return () <|> eof
-  t <- try $ string "Maukkaasti" <|> string "Edullisesti"
+  t <- try $ string "Maukkaasti" <|> string "Edullisesti" <|> string "Kevyesti"
   return $ T.concat [(T.pack f), (T.pack "- "), (T.pack t)]
 
 
@@ -90,22 +90,17 @@ joinFoodAndType (f:t:xs) =
     Left err -> joinFoodAndType xs
     Right f -> [f] ++ joinFoodAndType xs
 
-foodsFromSource :: String -> [T.Text]
-foodsFromSource = joinFoodAndType .
+foodsFromSource :: String -> [String]
+foodsFromSource = Prelude.map T.unpack . joinFoodAndType .
                   Prelude.filter ((> 1) . T.length) .
                   Prelude.map fromTagText .
                   Prelude.filter isTagText .
                   dropWhile (not . isTagOpenName "li") .
                   parseTagsT . pack
 
---unicafe  :: (MsgHost, [String], [String]) -> IO (Command String)
-unicafe (_,p,a) = do
+unicafe :: PluginData -> IO PluginResult
+unicafe pd = do
   (year,week,weekday) <- getCurrentDateTime >>= return . toWeekDate . dateTimeToDay
   putStrLn $ (show week) ++ " " ++ (show weekday)
-  mapM_ (Data.Text.IO.putStrLn) =<< fmap foodsFromSource (source $ unicafeurl week weekday year Chemicum)
- where args = words a
-
-{-
-   regexec (makeRegex ".*" :: Regex) "foobar"
--}
-main = unicafe (undefined,["a"],"")
+  foods <- fmap foodsFromSource (source $ unicafeurl week weekday year Chemicum)
+  msgsToChannel pd foods
