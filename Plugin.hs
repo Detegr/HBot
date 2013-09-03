@@ -11,7 +11,7 @@ import Data.Maybe (catMaybes, fromJust)
 type HBotPlugin = Plugin ((MsgHost, [String], [String]) -> IO PluginResult)
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where
-  show (PluginToLoad obj _ name cmd) = "Name: " ++ name ++ ", Command: " ++ cmd ++ ", Object: " ++ obj
+  show (PluginToLoad obj includes name cmd) = "Name: " ++ name ++ ", Command: " ++ cmd ++ ", Object: " ++ obj ++ ", Includes: " ++ (show includes)
 
 configPath :: String
 configPath = "HBot.conf"
@@ -24,7 +24,8 @@ getPluginData p = do
       -- TODO: Handle fromJusts
       Just (_,funcname) <- getItem "Function" (Just $ sectionName sect)
       Just (_,obj) <- getItem "Object" (Just $ sectionName sect)
-      return $ PluginToLoad (fromJust obj) [] (fromJust funcname) (sectionName sect)
+      Just (_,incls) <- getItem "Include" (Just $ sectionName sect)
+      return $ PluginToLoad (fromJust obj) (words . fromJust $ incls) (fromJust funcname) (sectionName sect)
     Nothing -> return $ PluginError p
 
 pluginsFromConfig :: ConfigM [PluginToLoad]
@@ -62,8 +63,8 @@ createPlugin p = do
   putStr $ "Plugin: " ++ (show p)
   pluginload <- try $ HS.newPlugin (objname p) (includes p) (name p) :: IO (Either SomeException (Plugin a))
   case pluginload of
-    Left _ -> do
-      putStrLn $ " - FAILED to load!"
+    Left e -> do
+      putStrLn $ " - FAILED to load! " ++ (show e)
       return Nothing
     Right okplugin -> do
       putStrLn " - OK!"

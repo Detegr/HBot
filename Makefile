@@ -1,19 +1,16 @@
 SRC=HBot
 CSRC=Config/config.c
 PLUGINNAMES=Admin Wikla Unicafe
-# Unicafe
 PLUGINS=$(addprefix Plugin/,$(PLUGINNAMES))
 PLUGINOBJECTS=$(addsuffix .o,$(PLUGINS))
 COBJECTS=$(CSRC:.c=.o)
 
 all: $(COBJECTS)
+	-rm Config.o
 	ghc $(PLUGINS)
 	ghc $(SRC) $(COBJECTS)
-	# Dunno how to merge dependencies with ghc...
-	ld -r PluginData.o Connection.o Config.o Parser.o Config/config.o Plugin/Admin.o -o Plugin/Admin.o.tmp
-	#ld -r Plugin/Wikla.o -o Plugin/Wikla.o.tmp
-	mv Plugin/Admin.o.tmp Plugin/Admin.o
-	#mv Plugin/Wikla.o.tmp Plugin/Wikla.o
+	ld -r Config/config.o Config.o -o Config.tmp.o
+	mv Config.tmp.o Config.o
 
 %.o: %.c %.h
 	gcc -c -D_GNU_SOURCE -std=c99 $< -o $@

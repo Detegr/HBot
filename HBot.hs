@@ -6,7 +6,6 @@ import Connection
 import Config
 import Parser
 import Plugin
-import Plugin.Admin
 
 import qualified Data.ByteString as B
 import Data.List
