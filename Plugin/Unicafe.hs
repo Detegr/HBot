@@ -5,7 +5,7 @@ module Plugin.Unicafe(unicafe) where
 import Text.HTML.TagSoup hiding (parseTags, renderTags)
 import Text.HTML.TagSoup.Fast.Utf8Only
 import qualified Data.Text as T
-import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn)
+import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn,map)
 import Network.HTTP
 import Text.Parsec
 import Text.Parsec.Text
@@ -14,6 +14,7 @@ import Data.Dates
 import Data.Time.Calendar.WeekDate (toWeekDate)
 import qualified Data.Text.IO (putStrLn)
 import Data.List (foldl')
+import Data.Char
 
 import Parser
 import Connection
@@ -62,6 +63,28 @@ instance Enum Restaurant where
   fromEnum Biokeskus       = 18
   fromEnum Korona          = 19
   fromEnum Viikuna         = 21
+
+strToRestaurant :: String -> Restaurant
+strToRestaurant s = go $ map toLower s
+  where go "metsätalo"       = Metsatalo
+        go "olivia"          = Olivia
+        go "porthania"       = Porthania
+        go "päärakennus"     = Paarakennus
+        go "rotunda"         = Rotunda
+        go "sockom"          = SocKom
+        go "topelias"        = Topelias
+        go "valtiotiede"     = Valtiotiede
+        go "ylioppilasaukio" = Ylioppilasaukio
+        go "kookos"          = Kookos
+        go "chemicum"        = Chemicum
+        go "exactum"         = Exactum
+        go "physicum"        = Physicum
+        go "meilahti"        = Meilahti
+        go "ruskeasuo"       = Ruskeasuo
+        go "biokeskus"       = Biokeskus
+        go "korona"          = Korona
+        go "viikuna"         = Viikuna
+
 
 unicafeurl w d y id = "http://www.unicafe.fi/lounastyokalu/index.php?option=com_ruokalista&Itemid=29&task=lounaslista_haku&week=" ++
                       show w ++ "&day=" ++ show d ++ "&year=" ++ show y ++ "&rid=" ++ show (fromEnum id) ++ "&lang=1"
