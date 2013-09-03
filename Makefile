@@ -5,12 +5,14 @@ PLUGINS=$(addprefix Plugin/,$(PLUGINNAMES))
 PLUGINOBJECTS=$(addsuffix .o,$(PLUGINS))
 COBJECTS=$(CSRC:.c=.o)
 
-all: $(COBJECTS)
+all: $(COBJECTS) plugins
 	-rm Config.o
-	ghc $(PLUGINS)
 	ghc $(SRC) $(COBJECTS)
 	ld -r Config/config.o Config.o -o Config.tmp.o
 	mv Config.tmp.o Config.o
+
+plugins:
+	ghc $(PLUGINS)
 
 %.o: %.c %.h
 	gcc -c -D_GNU_SOURCE -std=c99 $< -o $@

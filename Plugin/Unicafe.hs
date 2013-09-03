@@ -5,7 +5,7 @@ module Plugin.Unicafe(unicafe) where
 import Text.HTML.TagSoup hiding (parseTags, renderTags)
 import Text.HTML.TagSoup.Fast.Utf8Only
 import qualified Data.Text as T
-import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn,map)
+import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn,map,concat,take)
 import Network.HTTP
 import Text.Parsec
 import Text.Parsec.Text
@@ -121,9 +121,12 @@ foodsFromSource = Prelude.map T.unpack . joinFoodAndType .
                   dropWhile (not . isTagOpenName "li") .
                   parseTagsT . pack
 
+today :: DateTime -> String
+today dt = concat ["Food for ", show . day $ dt, show . month $ dt, show . year $ dt]
+
 unicafe :: PluginData -> IO PluginResult
 unicafe pd = do
-  (year,week,weekday) <- getCurrentDateTime >>= return . toWeekDate . dateTimeToDay
-  putStrLn $ (show week) ++ " " ++ (show weekday)
+  dt <- getCurrentDateTime
+  let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt
   foods <- fmap foodsFromSource (source $ unicafeurl week weekday year Chemicum)
-  msgsToChannel pd foods
+  msgsToChannel pd (today dt:(take 20 $ repeat '.'):foods)
