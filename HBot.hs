@@ -23,13 +23,20 @@ import Control.Monad (guard)
 import Control.Monad.State
 import PluginData
 import Control.Exception (try, SomeException)
+import Control.Concurrent (threadDelay)
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
 say :: Handle -> PluginResult -> IO()
-say h s = do
-          B.hPutStr h (ircStr . show $ s)
-          putStrLn $ "Sent: " ++ (show s)
+say h rslt = do
+          case rslt of
+            Command (Messages msgs) to -> do
+              mapM_ (\s -> do
+                      B.hPutStr h (ircStr $ show (Command (Message s) to))
+                      threadDelay 100000) msgs
+            _ -> do
+              B.hPutStr h (ircStr . show $ rslt)
+              putStrLn $ "Sent: " ++ (show rslt)
 
 handlePrivmsg :: MsgHost -> [String] -> String -> StateT HBotState IO()
 handlePrivmsg host params trailing = do
@@ -51,17 +58,26 @@ handlePrivmsg host params trailing = do
         hostnick = nickName host
 
 handleMsg :: Msg -> StateT HBotState IO()
-handleMsg (Msg pr c p t)
-  | pr == Left "PING" = do
+handleMsg (Msg pr c p t) =
+  case c of
+    Left "PRIVMSG" -> handlePrivmsg (fromRight pr) p t
+    Right i        -> commandHandler i
+    _ -> case pr of
+      Left "PING"  -> pingHandler $ fromLeft c
+      _            -> return ()
+
+pingHandler :: String -> StateT HBotState IO()
+pingHandler pong = do
     (_,conn) <- get
-    liftIO $ say (handle conn) $ Command Pong (fromLeft c)
-  | t == "Nickname is already in use." = do
-    (plugins, (Connection a port n r h)) <- get
-    newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
-    put (plugins, newconn)
-    loop
-  | c == Left "PRIVMSG" = handlePrivmsg (fromRight pr) p t
-  | otherwise = return ()
+    liftIO $ say (handle conn) $ Command Pong pong
+
+commandHandler :: Integer -> StateT HBotState IO()
+commandHandler 443 = do
+  (plugins, (Connection a port n r h)) <- get
+  newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
+  put (plugins, newconn)
+  loop
+commandHandler x = return ()
 
 loop :: StateT HBotState IO()
 loop = do
