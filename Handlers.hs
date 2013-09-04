@@ -56,8 +56,8 @@ msgHandler (Msg pr c p t) =
 
 pingHandler :: String -> StateT HBotState IO()
 pingHandler pong = do
-    (_,conn) <- get
-    liftIO $ say (handle conn) $ Command Pong pong
+  (_,conn) <- get
+  liftIO $ say (handle conn) $ Command Pong pong
 
 commandHandler :: Integer -> StateT HBotState IO()
 commandHandler 443 = do
