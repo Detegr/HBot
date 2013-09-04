@@ -5,7 +5,7 @@ module Plugin.Unicafe(unicafe) where
 import Text.HTML.TagSoup hiding (parseTags, renderTags)
 import Text.HTML.TagSoup.Fast.Utf8Only
 import qualified Data.Text as T
-import Data.ByteString.Char8 hiding (dropWhile,takeWhile,head,words,putStrLn,map,concat,take)
+import qualified Data.ByteString.Char8 as B
 import Network.HTTP
 import Text.Parsec
 import Text.Parsec.Text
@@ -15,6 +15,7 @@ import Data.Time.Calendar.WeekDate (toWeekDate)
 import qualified Data.Text.IO (putStrLn)
 import Data.List (foldl')
 import Data.Char
+import Data.Maybe (catMaybes)
 
 import Parser
 import Connection
@@ -64,28 +65,30 @@ instance Enum Restaurant where
   fromEnum Korona          = 19
   fromEnum Viikuna         = 21
 
-strToRestaurant :: String -> Restaurant
+-- Gotta learn how to write a Read instance :D
+strToRestaurant :: String -> Maybe Restaurant
 strToRestaurant s = go $ map toLower s
-  where go "metsätalo"       = Metsatalo
-        go "olivia"          = Olivia
-        go "porthania"       = Porthania
-        go "päärakennus"     = Paarakennus
-        go "rotunda"         = Rotunda
-        go "sockom"          = SocKom
-        go "topelias"        = Topelias
-        go "valtiotiede"     = Valtiotiede
-        go "ylioppilasaukio" = Ylioppilasaukio
-        go "kookos"          = Kookos
-        go "chemicum"        = Chemicum
-        go "exactum"         = Exactum
-        go "physicum"        = Physicum
-        go "meilahti"        = Meilahti
-        go "ruskeasuo"       = Ruskeasuo
-        go "biokeskus"       = Biokeskus
-        go "korona"          = Korona
-        go "viikuna"         = Viikuna
+  where go "metsätalo"       = Just Metsatalo
+        go "olivia"          = Just Olivia
+        go "porthania"       = Just Porthania
+        go "päärakennus"     = Just Paarakennus
+        go "rotunda"         = Just Rotunda
+        go "sockom"          = Just SocKom
+        go "topelias"        = Just Topelias
+        go "valtiotiede"     = Just Valtiotiede
+        go "ylioppilasaukio" = Just Ylioppilasaukio
+        go "kookos"          = Just Kookos
+        go "chemicum"        = Just Chemicum
+        go "exactum"         = Just Exactum
+        go "physicum"        = Just Physicum
+        go "meilahti"        = Just Meilahti
+        go "ruskeasuo"       = Just Ruskeasuo
+        go "biokeskus"       = Just Biokeskus
+        go "korona"          = Just Korona
+        go "viikuna"         = Just Viikuna
+        go _                 = Nothing
 
-
+unicafeurl :: Int -> Int -> Integer -> Restaurant -> String
 unicafeurl w d y id = "http://www.unicafe.fi/lounastyokalu/index.php?option=com_ruokalista&Itemid=29&task=lounaslista_haku&week=" ++
                       show w ++ "&day=" ++ show d ++ "&year=" ++ show y ++ "&rid=" ++ show (fromEnum id) ++ "&lang=1"
 
@@ -119,14 +122,33 @@ foodsFromSource = Prelude.map T.unpack . joinFoodAndType .
                   Prelude.map fromTagText .
                   Prelude.filter isTagText .
                   dropWhile (not . isTagOpenName "li") .
-                  parseTagsT . pack
+                  parseTagsT . B.pack
 
-today :: DateTime -> String
-today dt = concat ["Food for ", show . day $ dt, show . month $ dt, show . year $ dt]
+header :: DateTime -> String
+header dt = "Food for " ++ (show . day $ dt) ++ "." ++ (show . month $ dt) ++ "." ++ (show . year $ dt)
+
+foodsForRestaurant :: Int -> Int -> Integer -> Restaurant -> IO [String]
+foodsForRestaurant w wd y r = fmap foodsFromSource (source $ unicafeurl w wd y r)
+
+spacer :: String
+spacer = take 20 $ repeat '-'
+
+restaurantHeader :: Restaurant -> [String] -> [String]
+restaurantHeader r f = [spacer, show r ++ ":"] ++ f
+
+restaurantHeaders :: [Restaurant] -> [[String]] -> [[String]]
+restaurantHeaders rs fds = map (\(r,f) -> restaurantHeader r f) $ zip rs fds
+
+getRestaurants :: PluginData -> [Restaurant]
+getRestaurants pd =
+  case catMaybes . map (strToRestaurant) $ arguments pd of
+    [] -> [Chemicum, Exactum]
+    rs -> rs
 
 unicafe :: PluginData -> IO PluginResult
 unicafe pd = do
   dt <- getCurrentDateTime
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt
-  foods <- fmap foodsFromSource (source $ unicafeurl week weekday year Chemicum)
-  msgsToChannel pd (today dt:(take 20 $ repeat '.'):foods)
+  foods <- mapM (foodsForRestaurant week weekday year) $ getRestaurants pd
+  putStrLn $ show . getRestaurants $ pd
+  msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ restaurantHeaders (getRestaurants pd) foods)
