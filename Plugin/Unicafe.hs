@@ -150,5 +150,4 @@ unicafe pd = do
   dt <- getCurrentDateTime
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt
   foods <- mapM (foodsForRestaurant week weekday year) $ getRestaurants pd
-  putStrLn $ show . getRestaurants $ pd
   msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ restaurantHeaders (getRestaurants pd) foods)
