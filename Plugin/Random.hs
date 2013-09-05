@@ -1,18 +1,20 @@
 module Plugin.Random(randomQuote) where
 
-import Text.HTML.TagSoup
-import Network.HTTP
 import Parser
 import Connection
 import PluginData
+import Plugin.Util.Random
+import Control.Monad (replicateM)
 
-source addr = simpleHTTP (getRequest addr) >>= getResponseBody
+invalid pd = msgToChannel pd $ "Allowed number of randoms: 1-5"
 
 randomQuote :: PluginData -> IO PluginResult
-randomQuote pd = do
-  src <- source "http://muum.org/stats/channels/1/random"
-  let txt=head . dropWhile (not . isTagText) . takeWhile (not . isTagClose) . dropWhile (not . isTagOpenName "span") $ parseTags src
-  msgToChannel pd $
-    case maybeTagText txt of
-      Just s -> s
-      _      -> "Error fetching random quote :("
+randomQuote pd =
+  case arguments pd of
+    []   -> msgToChannel pd =<< getRandom
+    args ->
+      case reads . head $ args of
+        [(i, "")] -> if i>0 && i<=5
+                       then replicateM i getRandom >>= msgsToChannel pd
+                       else invalid pd
+        _         -> invalid pd

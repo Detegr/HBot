@@ -26,7 +26,7 @@ loop = do
   case line of
     Left _ -> do
       newconn <- liftIO $ reconnect c
-      put (plugins,c)
+      put (plugins,newconn)
     Right str ->
       case decodeUtf8' str of
         Left  _    -> return ()

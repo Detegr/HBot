@@ -5,6 +5,7 @@ import Config
 import Parser
 import Plugin
 import PluginData
+import UrlAnalyzer
 
 import Control.Monad.Reader (liftIO, ReaderT)
 import Control.Monad.State
@@ -13,6 +14,9 @@ import Control.Concurrent (threadDelay)
 import System.IO
 import Data.List
 import Data.Either.Utils
+import Data.Maybe (catMaybes)
+import Network.URI
+import Control.Exception (try, SomeException)
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
@@ -27,6 +31,23 @@ say h rslt =
       B.hPutStr h (ircStr . show $ rslt)
       putStrLn $ "Sent: " ++ (show rslt)
 
+analyzeUrls :: String -> [String] -> StateT HBotState IO()
+analyzeUrls chnl strs = do
+  liftIO $ putStrLn $ "Analyzer: " ++ chnl ++ " " ++ (show strs)
+  let urls=catMaybes . map analyze $ strs
+  urls' <- liftIO $ (try (mapM getTitle urls) :: IO (Either SomeException [String]))
+  case urls' of
+    Left _ -> return ()
+    Right urls'' -> do
+      (_,c) <- get
+      liftIO $ say (handle c) (Command (Messages urls'') chnl)
+ where analyze s =
+         case parseURI s of
+           Just u  -> if uriScheme u == "http:"
+                        then Just s
+                        else Nothing
+           Nothing -> Nothing
+
 privMsgHandler :: MsgHost -> [String] -> String -> StateT HBotState IO()
 privMsgHandler host params trailing = do
   (plugins, c) <- get
@@ -40,9 +61,10 @@ privMsgHandler host params trailing = do
           newplugins <- liftIO $ reloadPlugins plugins
           put (newplugins, c)
         else liftIO $ say (handle c) ret
-    _ -> return ()
+    _ -> analyzeUrls channel (words trailing)
   where args = tail . words $ trailing
         cmd  = head . words $ trailing
+        channel = head params
         hostnick = nickName host
 
 msgHandler :: Msg -> StateT HBotState IO()
@@ -60,8 +82,8 @@ pingHandler pong = do
   liftIO $ say (handle conn) $ Command Pong pong
 
 commandHandler :: Integer -> StateT HBotState IO()
-commandHandler 443 = do
+commandHandler 433 = do
   (plugins, (Connection a port n r h)) <- get
   newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
   put (plugins, newconn)
-commandHandler x = return ()
+commandHandler x = liftIO $ putStrLn $ "UNHANDLED COMMAND: " ++ (show x)

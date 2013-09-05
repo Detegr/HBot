@@ -35,4 +35,4 @@ wiklaQuote :: IO String
 wiklaQuote = (randomRIO (0,(length wiklaQuotes)) :: IO Int) >>= \i -> return $ wiklaQuotes !! i
 
 wiklaPlugin :: PluginData -> IO PluginResult
-wiklaPlugin pd = wiklaQuote >>= \q -> msgToNick pd q
+wiklaPlugin pd = wiklaQuote >>= \q -> msgToChannel pd q
