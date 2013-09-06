@@ -15,13 +15,11 @@ module Config (withConfig,
                ConfigM) where
 
 import Foreign.C
-import Foreign.C.String
 import Foreign.Ptr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Storable
 import Control.Monad
-import Data.String.Utils
 import Control.Monad.Reader
 
 type ConfigM a = ReaderT (Ptr CConfig, String) IO a

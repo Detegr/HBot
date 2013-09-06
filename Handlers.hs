@@ -1,18 +1,15 @@
 module Handlers(msgHandler, HBotState) where
 
 import Connection
-import Config
 import Parser
 import Plugin
 import PluginData
 import UrlAnalyzer
 
-import Control.Monad.Reader (liftIO, ReaderT)
 import Control.Monad.State
 import qualified Data.ByteString as B
 import Control.Concurrent (threadDelay)
 import System.IO
-import Data.List
 import Data.Either.Utils
 import Data.Maybe (catMaybes)
 import Network.URI

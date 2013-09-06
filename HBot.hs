@@ -7,17 +7,14 @@ import Config
 import Parser
 import Plugin
 import Handlers
-import PluginData
 
 import Text.Parsec (parse)
 import Data.Text.Encoding
 import qualified Data.ByteString as B
 import Data.Maybe
-import Control.Monad.Reader (liftIO, ReaderT)
 import Control.Monad.Trans.Maybe
-import Control.Monad (guard)
 import Control.Monad.State
-import Control.Exception (try, SomeException)
+import Control.Exception (try)
 
 loop :: StateT HBotState IO()
 loop = do
