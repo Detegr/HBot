@@ -2,32 +2,22 @@
 
 module UrlAnalyzer(getTitle) where
 
-import Network.HTTP
-import Network.Browser
+import Data.Text.Lazy.Encoding
+import Network.HTTP.Conduit
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as L
 import Text.HTML.TagSoup hiding (parseTags, renderTags)
 import Text.HTML.TagSoup.Fast.Utf8Only
-import qualified Data.Text as T
-
-source :: String -> IO String
-source uri = do
-  (_, rsp) <- browse $ do
-    setAllowRedirects True
-    setMaxRedirects (Just 5)
-    setOutHandler $ const (return ())
-    request $ getRequest uri
-  return $ rspBody rsp
 
 getTitle :: String -> IO String
 getTitle uri = do
-  src <- source uri
-  return $ "[" ++ uri ++ "]: " ++
-      (take 500 .
-      head .
-      map T.unpack .
-      map fromTagText .
-      filter isTagText .
-      takeWhile (not . isTagCloseName "title") .
-      dropWhile (not . isTagOpenName "title") .
-      parseTagsT .
-      B.pack $ src)
+  src <- simpleHttp uri
+  let mbtitle=(map B.unpack .
+               map fromTagText .
+               filter isTagText .
+               takeWhile (not . isTagCloseName "title") .
+               dropWhile (not . isTagOpenName "title") .
+               parseTags . B.concat . L.toChunks $ src)
+  if mbtitle == []
+    then return "No title"
+    else return $ "Title: " ++ (take 500 . head $ mbtitle)
