@@ -3,7 +3,6 @@ module Connection(doConnection,ircStr,Connection(..),reconnect,Command(..),Comma
 
 import Data.List
 import Network.Socket hiding(send, sendTo, recv, recvFrom)
-import Network.Socket.ByteString
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.ByteString as B
 import Debug.Trace
@@ -23,14 +22,11 @@ ircStr s = if isPrefixOf "\r\n" s
              then UTF8.fromString s
              else UTF8.fromString (s ++ "\r\n")
 
-privmsg to msg = "PRIVMSG " ++ to ++ " :" ++ msg
-join to = "JOIN " ++ to
-pong s = "PONG " ++ s
-
 connectionStrings :: String -> String -> [UTF8.ByteString]
 connectionStrings n rn = [ircStr $ intercalate rn ["USER "," "," * :",""],
                           ircStr $ "NICK " ++ n]
-                                   
+
+debug :: c -> String -> c
 debug = flip trace
 
 addrFromStr :: String -> IO HostAddress
@@ -51,6 +47,7 @@ mkConnection addr port = socket AF_INET Stream defaultProtocol >>= \sock ->
                             hSetBuffering hdl LineBuffering
                             return hdl `debug` "Connected"
 
+doConnection ::  String -> Int -> String -> String -> IO Connection
 doConnection addr port nick realname = do
     hdl <- mkConnection addr port
     mapM_ (\str -> B.hPutStr hdl str) $ connectionStrings nick realname

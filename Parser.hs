@@ -17,6 +17,7 @@ data Msg = Msg
     trailing :: String
   } deriving Show
 
+ircstring :: Parser String
 ircstring = many . noneOf $ "\r\n" :: Parser String
 
 parseHost :: Parser (Either String MsgHost)
