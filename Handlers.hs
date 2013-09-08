@@ -14,6 +14,7 @@ import Data.Either.Utils
 import Data.Maybe (catMaybes)
 import Network.URI
 import Control.Exception (try, SomeException)
+import Data.List (isPrefixOf)
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
@@ -40,10 +41,12 @@ analyzeUrls chnl strs = do
       liftIO $ say (handle c) (Command (Messages urls'') chnl)
  where analyze s =
          case parseURI s of
-           Just u  -> if uriScheme u == "http:"
+           Just u  -> if uriScheme u == "http:" || uriScheme u == "https:"
                         then Just s
                         else Nothing
-           Nothing -> Nothing
+           Nothing -> if isPrefixOf "www." s
+                        then Just $ "http://" ++ s
+                        else Nothing
 
 privMsgHandler :: MsgHost -> [String] -> String -> StateT HBotState IO()
 privMsgHandler host params trailing = do
