@@ -32,7 +32,7 @@ parseDate tz d = do
 
 showLanParty :: LanParty -> IO [String]
 showLanParty lp = do
-  now <- getCurrentTime
+  now <- fmap zonedTimeToUTC getZonedTime
   tz  <- getCurrentTimeZone
   case parseDate tz $ timeStr lp of
     Just _  -> return [intercalate " " ["Lanit", timeStr lp, "@", at lp], daysToNext tz now lp]
@@ -54,7 +54,7 @@ nextLanParty = do
 diffStr :: UTCTime -> UTCTime -> String
 diffStr a b = do
   let min=diffMinutes a b
-  (show $ (min `div` 60) `mod` 24) ++ " tuntia, " ++ (show (min `mod` 60)) ++ "minuuttia!"
+  (show $ (min `div` 60) `mod` 24) ++ " tuntia, " ++ (show (min `mod` 60)) ++ " minuuttia!"
 
 daysToNext :: TimeZone -> UTCTime -> LanParty -> String
 daysToNext tz now lp = do

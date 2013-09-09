@@ -2,18 +2,24 @@ module Plugin.Util.Random(getRandom) where
 
 import Database.HDBC
 import Database.HDBC.Sqlite3
-import Data.DateTime
+import Data.Time.Clock
+import Data.Time.LocalTime
+import Data.Time.Format
 import Data.List (intercalate)
 import Text.Printf
+import System.Locale (defaultTimeLocale)
+import Control.Monad ((<=<))
+import Plugin.Util.DatabasePath
 
 nick xs = fromSql (xs !! 1) :: String
 text = nick
 userid = 2
-time xs = fromSql (xs !! 3) :: DateTime
+time xs = fromSql (xs !! 3) :: UTCTime
 
-timeToStr :: DateTime -> String
-timeToStr dt = let (_,_,_,h,m,_) = toGregorian dt
-               in intercalate ":" [printf "%02d" h, printf "%02d" m]
+timeToStr :: UTCTime -> IO String
+timeToStr dt = do
+  tz <- getCurrentTimeZone
+  return $ formatTime defaultTimeLocale "%H:%M" (utcToLocalTime tz dt)
 
 randomMsg :: Connection -> IO [SqlValue]
 randomMsg conn = do
@@ -24,7 +30,8 @@ randomMsg conn = do
 
 getRandom :: IO String
 getRandom = do
-  conn <- connectSqlite3 "production.sqlite3"
+  conn <- connectSqlite3 dbPath
   msg <- randomMsg conn
   user <- quickQuery' conn "SELECT * from users where id=?" [msg !! userid]
-  return $ (timeToStr . time $ msg) ++ " <" ++ (nick . head $ user) ++ "> " ++ (text msg)
+  timestr <- timeToStr $ time msg
+  return $ timestr ++ " <" ++ (nick . head $ user) ++ "> " ++ (text msg)

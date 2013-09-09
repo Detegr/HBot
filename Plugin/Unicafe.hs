@@ -16,10 +16,16 @@ import qualified Data.Text.IO (putStrLn)
 import Data.List (foldl')
 import Data.Char
 import Data.Maybe (catMaybes)
+import Data.List (intercalate)
 
 import Parser
 import Connection
 import PluginData
+
+restaurants :: [String]
+restaurants = ["Metsätalo", "Olivia", "Porthania", "Päärakennus", "Rotunda", "Sockom",
+               "Topelias", "Valtiotiede", "Ylioppilasaukio", "Kookos", "Chemicum", "Exactum",
+               "Physicum", "Meilahti", "Ruskeasuo", "Biokeskus", "Korona", "Viikuna"]
 
 data Restaurant = Metsatalo | Olivia | Porthania | Paarakennus | Rotunda | SocKom | Topelias | Valtiotiede | Ylioppilasaukio |
                   Kookos | Chemicum | Exactum | Physicum | Meilahti | Ruskeasuo | Biokeskus | Korona | Viikuna
@@ -141,13 +147,21 @@ restaurantHeaders rs fds = map (\(r,f) -> restaurantHeader r f) $ zip rs fds
 
 getRestaurants :: PluginData -> [Restaurant]
 getRestaurants pd =
-  case catMaybes . map (strToRestaurant) $ arguments pd of
-    [] -> [Chemicum, Exactum]
-    rs -> rs
+  case length $ arguments pd of
+    0 -> [Chemicum, Exactum]
+    _ ->
+      case catMaybes . map (strToRestaurant) $ arguments pd of
+        [] -> []
+        rs -> rs
+
+usage :: String
+usage = "Available restaurants: " ++ intercalate ", " restaurants
 
 unicafe :: PluginData -> IO PluginResult
 unicafe pd = do
   dt <- getCurrentDateTime
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt
   foods <- mapM (foodsForRestaurant week weekday year) $ getRestaurants pd
-  msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ restaurantHeaders (getRestaurants pd) foods)
+  case foods of
+    []  -> msgToChannel pd $ usage
+    fds -> msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ restaurantHeaders (getRestaurants pd) fds)
