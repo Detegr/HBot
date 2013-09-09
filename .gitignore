@@ -3,3 +3,6 @@
 *.o
 HBot
 HBot.conf
+DatabasePath.hs
+lanit.txt
+*.sqlite3
