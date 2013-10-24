@@ -51,7 +51,6 @@ takeWhileLastTagWithName name tags = reverse $ dropWhile (not . isTagCloseName 
 foodsFromTags :: [Tag T.Text] -> [String]
 foodsFromTags tags = filter ((>0) . length) .
                      map parseFood .
-                     --map T.unpack .
                      takeWhile (/= "LOUNAAN HINNAT:") .
                      filter ((>2) . T.length) .
                      map fromTagText .
@@ -69,7 +68,6 @@ spacer :: String
 spacer = take 20 $ repeat '-'
 
 intToFWeekDayStr :: Int -> String
-intToFWeekDayStr 0 = ""
 intToFWeekDayStr i = show $ (toEnum i :: FinnishWeekDay)
 
 dropToDay :: Int -> [String] -> [String]
@@ -81,7 +79,7 @@ takeFromDay = takeWhile . (/=) . intToFWeekDayStr
 foodForToday :: Int -> [String] -> [String]
 foodForToday d fds
   | d <= 1 = takeFromDay 1 fds
-  | d >= 5 = dropToDay d fds
+  | d >= 5 = dropToDay 5 fds
   | otherwise = takeFromDay d . dropToDay (d-1) $ fds
 
 arabianranta :: PluginData -> IO PluginResult
