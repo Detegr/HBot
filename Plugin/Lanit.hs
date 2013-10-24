@@ -53,14 +53,20 @@ nextLanParty = do
 
 diffStr :: UTCTime -> UTCTime -> String
 diffStr a b = do
-  let min=diffMinutes a b
-  (show $ (min `div` 60) `mod` 24) ++ " tuntia, " ++ (show (min `mod` 60)) ++ " minuuttia!"
+  let mindiff=diffMinutes a b
+  let mins=mindiff `mod` 60
+  let hours=mindiff `div` 60 `mod` 24
+  let days=mindiff `div` 60 `div` 24
+  if days<0 && days > -3
+    then "Lanit ovat käynnissä!"
+    else if days<0 && days >= 3
+      then "Seuraavia laneja ei tiedossa"
+      else "Seuraaviin laneihin " ++ (show days) ++ " päivää, " ++ (show hours) ++ " tuntia, " ++ (show mins) ++ " minuuttia!"
 
 daysToNext :: TimeZone -> UTCTime -> LanParty -> String
 daysToNext tz now lp = do
   let lp'=fromJust $ parseDate tz $ timeStr lp
-  let next=show $ diffDays (utctDay lp') $ utctDay now
-  "Seuraaviin laneihin " ++ next ++ " päivää, " ++ diffStr lp' now
+  diffStr lp' now
 
 lanParty :: PluginData -> IO PluginResult
 lanParty pd = do

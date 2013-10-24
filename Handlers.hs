@@ -81,9 +81,13 @@ pingHandler pong = do
   (_,conn) <- get
   liftIO $ say (handle conn) $ Command Pong pong
 
-commandHandler :: Integer -> StateT HBotState IO()
-commandHandler 433 = do
+reconnectChangeNick :: StateT HBotState IO()
+reconnectChangeNick = do
   (plugins, (Connection a port n r h)) <- get
   newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
   put (plugins, newconn)
+
+commandHandler :: Integer -> StateT HBotState IO()
+commandHandler 433 = reconnectChangeNick -- Nick already in use
+commandHandler 437 = reconnectChangeNick -- Nick currently unavailable
 commandHandler x = liftIO $ putStrLn $ "UNHANDLED COMMAND: " ++ (show x)

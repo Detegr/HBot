@@ -5,6 +5,7 @@ import Connection
 import PluginData
 import Plugin.Util.Random
 import Control.Monad (replicateM)
+import Plugin.Util.DatabasePath
 
 invalid pd = msgToChannel pd $ "Allowed number of randoms: 1-5"
 
