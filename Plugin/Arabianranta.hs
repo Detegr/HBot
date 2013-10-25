@@ -79,7 +79,7 @@ takeFromDay = takeWhile . (/=) . intToFWeekDayStr
 foodForToday :: Int -> [String] -> [String]
 foodForToday d fds
   | d <= 1 = takeFromDay 1 fds
-  | d >= 5 = dropToDay 5 fds
+  | d >= 5 = dropToDay 4 fds
   | otherwise = takeFromDay d . dropToDay (d-1) $ fds
 
 arabianranta :: PluginData -> IO PluginResult
