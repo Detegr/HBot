@@ -63,8 +63,12 @@ privMsgHandler host params trailing = do
         else liftIO $ say (handle c) ret
     _ -> analyzeUrls channel (words trailing)
   where args = tail . words $ trailing
-        cmd  = head . words $ trailing
-        channel = head params
+        cmd = case words trailing of
+                [] -> []
+                wt -> head wt
+        channel = case params of
+                    [] -> []
+                    _  -> head params
         hostnick = nickName host
 
 msgHandler :: Msg -> StateT HBotState IO()
