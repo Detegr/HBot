@@ -3,7 +3,7 @@ module PluginData where
 import Parser (MsgHost(..))
 import Connection
 
-type PluginResult = (Command (CommandType String) String)
+data PluginResult = Result { resultCmd :: (Command (CommandType String) String) } | NoResult
 type PluginData = (MsgHost, [String], [String])
 
 getChannel :: PluginData -> String
@@ -13,10 +13,10 @@ getNick :: PluginData -> String
 getNick (h,_,_) = nickName h
 
 msgTo :: String -> String -> IO PluginResult
-msgTo to f = return $ Command (Message f) to
+msgTo to f = return . Result $ Command (Message f) to
 
 msgsTo :: String -> [String] -> IO PluginResult
-msgsTo to f = return $ Command (Messages f) to
+msgsTo to f = return . Result $ Command (Messages f) to
 
 msgToNick :: PluginData -> String -> IO PluginResult
 msgToNick pd f = msgTo (getNick pd) f
@@ -31,7 +31,7 @@ msgsToChannel :: PluginData -> [String] -> IO PluginResult
 msgsToChannel pd f = msgsTo (getChannel pd) f
 
 cmd :: CommandType String -> String -> IO PluginResult
-cmd ctype to = return $ Command ctype to
+cmd ctype to = return . Result $ Command ctype to
 
 arguments :: PluginData -> [String]
 arguments (_,_,a) = a

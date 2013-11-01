@@ -4,7 +4,6 @@ import Connection
 import Parser
 import Plugin
 import PluginData
-import UrlAnalyzer
 
 import Control.Monad.State
 import qualified Data.ByteString as B
@@ -12,64 +11,50 @@ import Control.Concurrent (threadDelay)
 import System.IO
 import Data.Either.Utils
 import Data.Maybe (catMaybes)
-import Network.URI
-import Control.Exception (try, SomeException)
-import Data.List (isPrefixOf)
 
 type HBotState = ([(String, HBotPlugin)], Connection)
 
 say :: Handle -> PluginResult -> IO()
 say h rslt =
   case rslt of
-    Command (Messages msgs) to -> do
+    Result (Command (Messages msgs) to) -> do
       mapM_ (\s -> do
               B.hPutStr h (ircStr $ show (Command (Message s) to))
               threadDelay 100000) msgs
+    NoResult -> return ()
     _ -> do
-      B.hPutStr h (ircStr . show $ rslt)
-      putStrLn $ "Sent: " ++ (show rslt)
-
-analyzeUrls :: String -> [String] -> StateT HBotState IO()
-analyzeUrls chnl strs = do
-  liftIO $ putStrLn $ "Analyzer: " ++ chnl ++ " " ++ (show strs)
-  let urls=catMaybes . map analyze $ strs
-  urls' <- liftIO $ (try (mapM getTitle urls) :: IO (Either SomeException [String]))
-  case urls' of
-    Left _ -> return ()
-    Right urls'' -> do
-      (_,c) <- get
-      liftIO $ say (handle c) (Command (Messages urls'') chnl)
- where analyze s =
-         case parseURI s of
-           Just u  -> if uriScheme u == "http:" || uriScheme u == "https:"
-                        then Just s
-                        else Nothing
-           Nothing -> if isPrefixOf "www." s
-                        then Just $ "http://" ++ s
-                        else Nothing
+      B.hPutStr h (ircStr . show . resultCmd $ rslt)
+      putStrLn $ "Sent: " ++ (show . resultCmd $ rslt)
 
 privMsgHandler :: MsgHost -> [String] -> String -> StateT HBotState IO()
 privMsgHandler host params trailing = do
   (plugins, c) <- get
   case lookup cmd plugins of
     Just p -> do
-      ret <- liftIO $ do
-        putStrLn ("Running plugin " ++ cmd)
-        usePluginIO p (host, params, args)
-      if cmd == "!admin" && ret == (Command (Message "reloadPlugins") hostnick)
+      ret <- liftIO $ runPlugin p
+      if cmd == "!admin" && resultCmd ret == Command (Message "reloadPlugins") hostnick
         then do
           newplugins <- liftIO $ reloadPlugins plugins
           put (newplugins, c)
         else liftIO $ say (handle c) ret
-    _ -> analyzeUrls channel (words trailing)
+    _ -> runImplicitPlugin "analyzer" plugins c >> runImplicitPlugin "logger" plugins c
   where args = tail . words $ trailing
         cmd = case words trailing of
                 [] -> []
-                wt -> head wt
+                wt -> case head wt of
+                  "analyzer" -> ""
+                  "logger"   -> ""
+                  cmd        -> cmd
         channel = case params of
                     [] -> []
                     _  -> head params
         hostnick = nickName host
+        runPlugin p = putStrLn ("Running plugin " ++ cmd) >> usePluginIO p (host, params, args)
+        runImplicitPlugin name plugins c =
+          case lookup name plugins of
+            Just p  -> liftIO $ say (handle c) =<< usePluginIO p (host, params, (words trailing))
+            Nothing -> return ()
+
 
 msgHandler :: Msg -> StateT HBotState IO()
 msgHandler (Msg pr c p t) =
@@ -83,7 +68,7 @@ msgHandler (Msg pr c p t) =
 pingHandler :: String -> StateT HBotState IO()
 pingHandler pong = do
   (_,conn) <- get
-  liftIO $ say (handle conn) $ Command Pong pong
+  liftIO $ say (handle conn) $ Result (Command Pong pong)
 
 reconnectChangeNick :: StateT HBotState IO()
 reconnectChangeNick = do
