@@ -12,10 +12,12 @@ invalid pd = msgToChannel pd $ "Allowed number of randoms: 1-5"
 randomQuote :: PluginData -> IO PluginResult
 randomQuote pd =
   case arguments pd of
-    []   -> msgToChannel pd =<< getRandom
+    []   -> msgToChannel pd =<< getRandom Nothing
     args ->
       case reads . head $ args of
         [(i, "")] -> if i>0 && i<=5
-                       then replicateM i getRandom >>= msgsToChannel pd
+                       then do
+                         let user = if (length args)>=2 then Just (args !! 1) else Nothing
+                         replicateM i (getRandom user) >>= msgsToChannel pd
                        else invalid pd
         _         -> invalid pd
