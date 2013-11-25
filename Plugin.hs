@@ -8,7 +8,7 @@ import Control.Monad.Reader
 import Control.Exception (try, SomeException)
 import Data.Maybe (catMaybes, fromJust)
 
-type HBotPlugin = Plugin ((MsgHost, [String], [String]) -> IO PluginResult)
+type HBotPlugin a = Plugin ((MsgHost, [String], [String], Maybe a) -> IO (PluginResult a))
 data PluginToLoad = PluginToLoad { objname :: String, includes :: [String], name :: String, command :: String } | PluginError String
 instance Show PluginToLoad where
   show (PluginToLoad obj includes name cmd) = "Name: " ++ name ++ ", Command: " ++ cmd ++ ", Object: " ++ obj ++ ", Includes: " ++ (show includes)
@@ -31,26 +31,26 @@ getPluginData p = do
 pluginsFromConfig :: ConfigM [PluginToLoad]
 pluginsFromConfig = mapM getPluginData =<< getSectionKeys "Plugins"
 
-initPlugins :: IO [(String, Plugin a)]
+initPlugins :: IO [(String, (Maybe b, Plugin a))]
 initPlugins = do
   withLoadedConfig configPath $ do
     plugins <- pluginsFromConfig
     liftIO $ mapM createPlugin plugins >>= return . catMaybes
 
-loadOrReload :: PluginToLoad -> [(String, Plugin a)] -> IO (Maybe (String, Plugin a))
+loadOrReload :: PluginToLoad -> [(String, (Maybe b, Plugin a))] -> IO (Maybe (String, (Maybe b, Plugin a)))
 loadOrReload plugin oldplugins =
   case lookup (command plugin) oldplugins of
-    Just p -> do
+    Just (st,p) -> do
       HS.reloadPlugin p
       putStrLn $ "Plugin " ++ (name plugin) ++ " reloaded."
-      return $ Just (command plugin, p)
+      return $ Just (command plugin, (st,p))
     Nothing -> createPlugin plugin
 
 handlePluginError :: PluginToLoad -> IO()
 handlePluginError (PluginToLoad _ _ _ _) = return ()
 handlePluginError (PluginError s) = putStrLn s
 
-reloadPlugins :: [(String, Plugin a)] -> IO [(String, Plugin a)]
+reloadPlugins :: [(String, (Maybe b, Plugin a))] -> IO [(String, (Maybe b, Plugin a))]
 reloadPlugins oldplugins =
   withLoadedConfig configPath $ do
     plugins <- pluginsFromConfig
@@ -58,7 +58,7 @@ reloadPlugins oldplugins =
     reloadedplugindata <- liftIO $ mapM (\p -> loadOrReload p oldplugins) plugins
     return . catMaybes $ reloadedplugindata
 
-createPlugin :: PluginToLoad -> IO (Maybe (String, HS.Plugin a))
+createPlugin :: PluginToLoad -> IO (Maybe (String, (Maybe b, HS.Plugin a)))
 createPlugin p = do
   putStr $ "Plugin: " ++ (show p)
   pluginload <- try $ HS.newPlugin (objname p) (includes p) (name p) :: IO (Either SomeException (Plugin a))
@@ -68,4 +68,4 @@ createPlugin p = do
       return Nothing
     Right okplugin -> do
       putStrLn " - OK!"
-      return $ Just (command p, okplugin)
+      return $ Just (command p, (Nothing, okplugin))

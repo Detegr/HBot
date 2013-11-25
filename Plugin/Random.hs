@@ -9,7 +9,7 @@ import Plugin.Util.DatabasePath
 
 invalid pd = msgToChannel pd $ "Allowed number of randoms: 1-5"
 
-randomQuote :: PluginData -> IO PluginResult
+randomQuote :: PluginData a -> IO (PluginResult a)
 randomQuote pd =
   case arguments pd of
     []   -> msgToChannel pd =<< getRandom Nothing

@@ -82,7 +82,7 @@ foodForToday d fds
   | d >= 5 = dropToDay 4 fds
   | otherwise = takeFromDay d . dropToDay (d-1) $ fds
 
-arabianranta :: PluginData -> IO PluginResult
+arabianranta :: PluginData a -> IO (PluginResult a)
 arabianranta pd = do
   dt <- getCurrentDateTime
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt

@@ -16,7 +16,7 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.State
 import Control.Exception (try)
 
-loop :: StateT HBotState IO()
+loop :: StateT (HBotState a) IO()
 loop = do
   (plugins,c) <- get
   line <- liftIO (try $ B.hGetLine (handle c) :: IO (Either IOError B.ByteString))

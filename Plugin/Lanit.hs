@@ -68,7 +68,7 @@ daysToNext tz now lp = do
   let lp'=fromJust $ parseDate tz $ timeStr lp
   diffStr lp' now
 
-lanParty :: PluginData -> IO PluginResult
+lanParty :: PluginData a -> IO (PluginResult a)
 lanParty pd = do
   if length (arguments pd) == 3
     then do

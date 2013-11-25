@@ -10,7 +10,7 @@ import Data.List
 channels :: [String]
 channels=["#tapiiri"]
 
-logMessage :: PluginData -> IO PluginResult 
+logMessage :: PluginData a -> IO (PluginResult a)
 logMessage pd = do
   c <- connectPostgreSQL "host=localhost dbname=loggerdb user=postgres"
   putStrLn $ show (head $ head (PluginData.params pd))

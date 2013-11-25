@@ -4,5 +4,5 @@ import Control.Monad.State (liftIO)
 import PluginData
 import Config
 
-help :: PluginData -> IO PluginResult
+help :: PluginData a -> IO (PluginResult a)
 help pd = withLoadedConfig "HBot.conf" (getSectionKeys "Plugins") >>= msgsToNick pd

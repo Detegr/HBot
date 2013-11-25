@@ -145,7 +145,7 @@ restaurantHeader r f = [spacer, show r ++ ":"] ++ f
 restaurantHeaders :: [Restaurant] -> [[String]] -> [[String]]
 restaurantHeaders rs fds = map (\(r,f) -> restaurantHeader r f) $ zip rs fds
 
-getRestaurants :: PluginData -> [Restaurant]
+getRestaurants :: PluginData a -> [Restaurant]
 getRestaurants pd =
   case length $ arguments pd of
     0 -> [Chemicum, Exactum]
@@ -157,7 +157,7 @@ getRestaurants pd =
 usage :: String
 usage = "Available restaurants: " ++ intercalate ", " restaurants
 
-unicafe :: PluginData -> IO PluginResult
+unicafe :: PluginData a -> IO (PluginResult a)
 unicafe pd = do
   dt <- getCurrentDateTime
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt

@@ -3,41 +3,47 @@ module PluginData where
 import Parser (MsgHost(..))
 import Connection
 
-data PluginResult = Result { resultCmd :: (Command (CommandType String) String) } | NoResult
-type PluginData = (MsgHost, [String], [String])
+data PluginResult a = Result { resultCmd :: (Command (CommandType String) String), resultState :: Maybe a } | NoResult
+type PluginData a = (MsgHost, [String], [String], Maybe a)
 
-getChannel :: PluginData -> String
-getChannel (_,p,_) = head p
+getChannel :: PluginData a -> String
+getChannel (_,p,_,_) = head p
 
-getNick :: PluginData -> String
-getNick (h,_,_) = nickName h
+getNick :: PluginData a -> String
+getNick (h,_,_,_) = nickName h
 
-msgTo :: String -> String -> IO PluginResult
-msgTo to f = return . Result $ Command (Message f) to
+msgTo :: String -> String -> Maybe a -> IO (PluginResult a)
+msgTo to f st = return Result { resultCmd=Command (Message f) to, resultState=st }
 
-msgsTo :: String -> [String] -> IO PluginResult
-msgsTo to f = return . Result $ Command (Messages f) to
+msgsTo :: String -> [String] -> Maybe a -> IO (PluginResult a)
+msgsTo to f st = return Result { resultCmd=Command (Messages f) to, resultState=st }
 
-msgToNick :: PluginData -> String -> IO PluginResult
-msgToNick pd f = msgTo (getNick pd) f
+msgToNick :: PluginData a -> String -> IO (PluginResult a)
+msgToNick pd f = msgTo (getNick pd) f Nothing
 
-msgsToNick :: PluginData -> [String] -> IO PluginResult
-msgsToNick pd f = msgsTo (getNick pd) f
+msgsToNick :: PluginData a -> [String] -> IO (PluginResult a)
+msgsToNick pd f = msgsTo (getNick pd) f Nothing
 
-msgToChannel :: PluginData -> String -> IO PluginResult
-msgToChannel pd f = msgTo (getChannel pd) f
+msgToChannel :: PluginData a -> String -> IO (PluginResult a)
+msgToChannel pd f = msgTo (getChannel pd) f Nothing
 
-msgsToChannel :: PluginData -> [String] -> IO PluginResult
-msgsToChannel pd f = msgsTo (getChannel pd) f
+msgToChannel' :: PluginData a -> String -> Maybe a -> IO (PluginResult a)
+msgToChannel' pd f st = msgTo (getChannel pd) f st
 
-cmd :: CommandType String -> String -> IO PluginResult
-cmd ctype to = return . Result $ Command ctype to
+msgsToChannel :: PluginData a -> [String] -> IO (PluginResult a)
+msgsToChannel pd f = msgsTo (getChannel pd) f Nothing
 
-arguments :: PluginData -> [String]
-arguments (_,_,a) = a
+cmd :: CommandType String -> String -> IO (PluginResult a)
+cmd ctype to = return Result { resultCmd=Command ctype to, resultState=Nothing }
 
-host :: PluginData -> MsgHost
-host (h,_,_) = h
+arguments :: PluginData a -> [String]
+arguments (_,_,a,_) = a
 
-params :: PluginData -> [String]
-params (_,p,_) = p
+host :: PluginData a -> MsgHost
+host (h,_,_,_) = h
+
+params :: PluginData a -> [String]
+params (_,p,_,_) = p
+
+state :: PluginData a -> Maybe a
+state (_,_,_,st) = st

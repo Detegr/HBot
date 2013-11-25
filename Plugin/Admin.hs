@@ -18,14 +18,14 @@ isAuthorized h = do
       Just au -> return $ any authorized (map fst $ sectionItems au)
  where authorized x = x == (show h)
 
-adminCommand :: PluginData -> IO PluginResult
+adminCommand :: PluginData a -> IO (PluginResult a)
 adminCommand pd = do
   ok <- withLoadedConfig configPath $ isAuthorized (host pd)
   if ok
     then checkCommand (arguments pd) pd
     else msgToNick pd "You're not authorized to execute admin commands!"
 
-checkCommand :: [String] -> PluginData -> IO PluginResult
+checkCommand :: [String] -> PluginData a -> IO (PluginResult a)
 checkCommand [] pd = msgToNick pd "Admin plugin"
 checkCommand args pd =
   case head args of

@@ -28,7 +28,7 @@ getTitle uri = do
     then return "No title"
     else return $ "Title: " ++ (take 500 . head $ mbtitle)
 
-analyzeUrl :: PluginData -> IO PluginResult
+analyzeUrl :: PluginData a -> IO (PluginResult a)
 analyzeUrl pd = do
   putStrLn $ "Analyzer: " ++ (getChannel pd) ++ " " ++ (show . arguments $ pd)
   urls <- analyzeUrls (arguments pd)
