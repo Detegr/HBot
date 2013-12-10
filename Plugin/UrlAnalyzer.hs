@@ -12,6 +12,7 @@ import Data.Maybe(catMaybes)
 import Control.Exception(try,SomeException)
 import Network.URI
 import Data.List (isPrefixOf)
+import Data.String.Utils (strip)
 
 import PluginData
 
@@ -26,7 +27,7 @@ getTitle uri = do
                parseTagsT . B.concat . L.toChunks $ src)
   if mbtitle == []
     then return "No title"
-    else return $ "Title: " ++ (take 500 . head $ mbtitle)
+    else return $ "Title: " ++ (strip . take 500 . head $ mbtitle)
 
 analyzeUrl :: PluginData a -> IO (PluginResult a)
 analyzeUrl pd = do
