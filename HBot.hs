@@ -43,9 +43,9 @@ getHBotConf = withLoadedConfig "HBot.conf" $ runMaybeT $ do
   nick   <- lift $ getItem "Nick"     (Just "Connection")
   name   <- lift $ getItem "RealName" (Just "Connection")
   let arr=[server,port,nick,name]
-  mapM_ (guard . isJust) arr
+  guard . isJust . sequence $ arr
   mbvalues <- mapM (return . snd . fromJust) arr
-  mapM_ (guard . isJust) mbvalues
+  guard . isJust . sequence $ mbvalues
   return (getValue server, read . getValue $ port, getValue nick, getValue name)
  where getValue = fromJust . snd . fromJust
 
