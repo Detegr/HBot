@@ -2,13 +2,16 @@
 
 module Plugin.Btc(btc) where
 
+import Prelude hiding (catch)
 import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Lazy.Char8 as LC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import Network.HTTP.Conduit
 import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Control.Applicative
+import Control.Exception (catch)
 import qualified Data.Text as T
 import Safe (readMay)
 import Text.Printf
@@ -33,7 +36,7 @@ readField :: (Read a) => Object -> T.Text -> Parser a
 readField o f = do
   v <- o .: f
   case readMay (T.unpack v) of
-    Nothing -> fail $ "Bad field: " ++ T.unpack f
+    Nothing -> fail $ "Bad field: " ++ T.unpack f
     Just r -> return r
 
 instance FromJSON BtcData where
@@ -58,7 +61,7 @@ conversionStr :: String
 conversionStr = "https://www.bitstamp.net/api/eur_usd/"
 
 value :: IO L.ByteString
-value = simpleHttp valueStr
+value = catch (simpleHttp valueStr) (\e -> return . LC.pack . show $ (e :: HttpException))
 
 conversion :: IO L.ByteString
 conversion = simpleHttp conversionStr
@@ -70,9 +73,9 @@ parseRate :: L.ByteString -> Either String ConversionData
 parseRate = eitherDecode'
 
 btcStr :: BtcData -> ConversionData -> String
-btcStr b c = "High: $" ++ (printf "%.2f" $ high b) ++ (" (" ++ (printf "%.2f" $ high b / buy c) ++ "e)") ++
-             ", Low: $" ++ (printf "%.2f" $ low b) ++ (" (" ++ (printf "%.2f" $ low b / buy c) ++ "e)") ++
-             ", Last: $" ++ (printf "%.2f" $ Plugin.Btc.last b) ++ (" (" ++ (printf "%.2f" $ Plugin.Btc.last b / buy c) ++ "e)")
+btcStr b c = "High: $" ++ (printf "%.2f" $ high b) ++ (" (" ++ (printf "%.2f" $ high b / buy c) ++ "e)") ++
+             ", Low: $" ++ (printf "%.2f" $ low b) ++ (" (" ++ (printf "%.2f" $ low b / buy c) ++ "e)") ++
+             ", Last: $" ++ (printf "%.2f" $ Plugin.Btc.last b) ++ (" (" ++ (printf "%.2f" $ Plugin.Btc.last b / buy c) ++ "e)")
 
 btc :: PluginData a -> IO (PluginResult a)
 btc pd = do
