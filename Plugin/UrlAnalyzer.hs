@@ -16,9 +16,15 @@ import Data.String.Utils (strip)
 
 import PluginData
 
+userAgent :: B.ByteString
+userAgent = "Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36"
+
 getTitle :: String -> IO String
-getTitle uri = do
-  src <- simpleHttp uri
+getTitle url = do
+  src <- withManager $ \m -> do
+    req' <- parseUrl url
+    let req = req' { requestHeaders = (requestHeaders req') ++ [("User-agent", userAgent)] }
+    fmap responseBody $ httpLbs req m
   let mbtitle=(map T.unpack .
                map fromTagText .
                filter isTagText .

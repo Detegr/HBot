@@ -107,8 +107,8 @@ foodParser = do
     many $ noneOf ")"
     char ')'
     return () <|> eof
-  t <- try $ string "Maukkaasti" <|> string "Edullisesti" <|> string "Kevyesti"
-  return $ T.concat [(T.pack f), (T.pack "- "), (T.pack t)]
+  t <- try $ string "Edullisesti" <|> string "Kevyesti"
+  return $ T.pack f --T.concat [(T.pack f), (T.pack "- "), (T.pack t)]
 
 
 joinFoodAndType :: [T.Text] -> [T.Text]
