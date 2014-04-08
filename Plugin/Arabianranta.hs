@@ -64,8 +64,12 @@ header dt = "Food for " ++ (show . day $ dt) ++ "." ++ (show . month $ dt) ++ "
 usage :: String
 usage = "Something went wrong"
 
-spacer :: String
-spacer = take 20 $ repeat '-'
+spacer :: Char -> String
+spacer c = take 19 $ repeat c
+
+specialSpacer :: Char -> Char -> String
+specialSpacer c s = concat [take 9 normal, [s], take 9 normal]
+  where normal = repeat c
 
 intToFWeekDayStr :: Int -> String
 intToFWeekDayStr i = show $ (toEnum i :: FinnishWeekDay)
@@ -90,4 +94,4 @@ arabianranta pd = do
   let todayfds=tail . foodForToday weekday . foodsFromTags $ tags
   case todayfds of
     []  -> msgToChannel pd usage
-    fds -> msgsToChannel pd (header dt:spacer:fds)
+    fds -> msgsToChannel pd (header dt:spacer '-':(fds ++ [specialSpacer '-' '*']))

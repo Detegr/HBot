@@ -136,11 +136,15 @@ header dt = "Food for " ++ (show . day $ dt) ++ "." ++ (show . month $ dt) ++ "
 foodsForRestaurant :: Int -> Int -> Integer -> Restaurant -> IO [String]
 foodsForRestaurant w wd y r = fmap foodsFromSource (source $ unicafeurl w wd y r)
 
-spacer :: String
-spacer = take 20 $ repeat '-'
+spacer :: Char -> String
+spacer c = take 19 $ repeat c
+
+specialSpacer :: Char -> Char -> String
+specialSpacer c s = concat [take 9 normal, [s], take 9 normal]
+  where normal = repeat c
 
 restaurantHeader :: Restaurant -> [String] -> [String]
-restaurantHeader r f = [spacer, show r ++ ":"] ++ f
+restaurantHeader r f = [spacer '-', show r ++ ":"] ++ f
 
 restaurantHeaders :: [Restaurant] -> [[String]] -> [[String]]
 restaurantHeaders rs fds = map (\(r,f) -> restaurantHeader r f) $ zip rs fds
@@ -164,4 +168,4 @@ unicafe pd = do
   foods <- mapM (foodsForRestaurant week weekday year) $ getRestaurants pd
   case foods of
     []  -> msgToChannel pd $ usage
-    fds -> msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ restaurantHeaders (getRestaurants pd) fds)
+    fds -> msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ (restaurantHeaders (getRestaurants pd) fds) ++ [[specialSpacer '-' '*']])
