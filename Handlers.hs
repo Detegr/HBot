@@ -1,6 +1,7 @@
 module Handlers(msgHandler, HBotState) where
 
 import Connection
+import Config
 import Parser
 import Plugin
 import PluginData
@@ -79,7 +80,18 @@ reconnectChangeNick = do
   newconn <- liftIO $ reconnect (Connection a port (n ++ "_") r h)
   put (plugins, newconn)
 
+doAutoJoins :: StateT (HBotState a) IO()
+doAutoJoins = do
+  (_, conn) <- get
+  liftIO $ withLoadedConfig "HBot.conf" $ do
+    keys <- getSectionKeys "AutoJoin"
+    liftIO $ mapM_ (Handlers.join $ handle conn) keys
+
+join :: Handle -> String -> IO()
+join handle channel = say handle =<< cmd Join channel
+
 commandHandler :: Integer -> StateT (HBotState a) IO()
+commandHandler 376 = doAutoJoins -- End of MOTD
 commandHandler 433 = reconnectChangeNick -- Nick already in use
 commandHandler 437 = reconnectChangeNick -- Nick currently unavailable
 commandHandler x = liftIO $ putStrLn $ "UNHANDLED COMMAND: " ++ (show x)
