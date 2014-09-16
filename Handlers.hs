@@ -38,7 +38,7 @@ privMsgHandler host params trailing = do
           newplugins <- liftIO $ reloadPlugins plugins
           put (newplugins, c)
         else do
-          let plgs = map (\(pname, pdata) -> if pname == cmd then (pname, (resultState ret, p)) else (pname, pdata)) plugins
+          let plgs = map (\(pname, pdata) -> if pname == cmd then (pname, ((resultState ret), p)) else (pname, pdata)) plugins
           put (plgs, c)
           liftIO $ say (handle c) ret
     _ -> runImplicitPlugin "analyzer" plugins c >> runImplicitPlugin "logger" plugins c
@@ -53,10 +53,10 @@ privMsgHandler host params trailing = do
                     [] -> []
                     _  -> head params
         hostnick = nickName host
-        runPlugin p st = putStrLn ("Running plugin " ++ cmd) >> usePluginIO p (host, params, args, st)
+        runPlugin p st = putStrLn ("Running plugin " ++ cmd) >> p (host, params, args, st)
         runImplicitPlugin name plugins c =
           case lookup name plugins of
-            Just (st,p)  -> liftIO $ say (handle c) =<< usePluginIO p (host, params, (words trailing), st)
+            Just (st,p)  -> liftIO $ say (handle c) =<< p (host, params, (words trailing), st)
             Nothing -> return ()
 
 
@@ -88,7 +88,7 @@ doAutoJoins = do
     liftIO $ mapM_ (Handlers.join $ handle conn) keys
 
 join :: Handle -> String -> IO()
-join handle channel = say handle =<< cmd Join channel
+join handle channel = say handle =<< PluginData.cmd Join channel
 
 commandHandler :: Integer -> StateT (HBotState a) IO()
 commandHandler 376 = doAutoJoins -- End of MOTD

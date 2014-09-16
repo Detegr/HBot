@@ -17,6 +17,7 @@ import Data.List (foldl')
 import Data.Char
 import Data.Maybe (catMaybes)
 import Data.List (intercalate)
+import Debug.Trace
 
 import Parser
 import Connection
@@ -102,25 +103,29 @@ source addr = simpleHTTP (getRequest addr) >>= getResponseBody
 
 foodParser :: Parser T.Text
 foodParser = do
-  f <- many $ noneOf "(["
-  try $ do
-    many $ noneOf ")"
-    char ')'
-    return () <|> eof
+  f <- many $ try fp'
   t <- try $ string "Edullisesti" <|> string "Kevyesti"
-  return $ T.pack f --T.concat [(T.pack f), (T.pack "- "), (T.pack t)]
+  return $ T.pack (concat f)
+ where fp' = do
+             str <- many $ noneOf "(["
+             try $ do
+               many $ noneOf ")"
+               char ')'
+               return () <|> eof
+             return str
 
+debug = flip trace
 
 joinFoodAndType :: [T.Text] -> [T.Text]
 joinFoodAndType [] = []
 joinFoodAndType [f] =
   case parse foodParser "" f of
-    Left err -> []
-    Right f  -> [f]
+    Left err -> [] `debug` show err
+    Right f  -> [f] `debug` (T.unpack f)
 joinFoodAndType (f:t:xs) =
   case parse foodParser "" (T.concat [f, t]) of
-    Left err -> joinFoodAndType xs
-    Right f -> [f] ++ joinFoodAndType xs
+    Left err -> joinFoodAndType xs `debug` (T.unpack f)
+    Right f -> [f] ++ joinFoodAndType xs `debug` (T.unpack f)
 
 foodsFromSource :: String -> [String]
 foodsFromSource = Prelude.map T.unpack . joinFoodAndType .
@@ -158,8 +163,10 @@ getRestaurants pd =
         [] -> []
         rs -> rs
 
-usage :: String
-usage = "Available restaurants: " ++ intercalate ", " restaurants
+usage :: [String]
+usage = ["Available restaurants: ",
+         intercalate ", " restaurants,
+         "Example usage: !unicafe Porthania Päärakennus"]
 
 unicafe :: PluginData a -> IO (PluginResult a)
 unicafe pd = do
@@ -167,5 +174,5 @@ unicafe pd = do
   let (year, week, weekday) = toWeekDate . dateTimeToDay $ dt
   foods <- mapM (foodsForRestaurant week weekday year) $ getRestaurants pd
   case foods of
-    []  -> msgToChannel pd $ usage
+    []  -> msgsToChannel pd $ usage
     fds -> msgsToChannel pd (Data.List.foldl' (\a s -> a ++ s) [header dt] $ (restaurantHeaders (getRestaurants pd) fds) ++ [[specialSpacer '-' '*']])
