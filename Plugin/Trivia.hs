@@ -1,4 +1,4 @@
-module Plugin.Util.Trivia(trivia) where
+module Plugin.Trivia(trivia) where
 
 import PluginData
 import Plugin.Util.Random

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
-module Plugin.Doge where
+module Plugin.DogeTip where
 
 import PluginData
 import Plugin.Util.DogeTipUserDetails
