@@ -140,9 +140,6 @@ unicafeUrl r = "http://hyy-lounastyokalu-production.herokuapp.com/publicapi/rest
 source :: String -> IO B.ByteString
 source addr = simpleHTTP (getRequest addr) >>= (fmap C.pack) . getResponseBody
 
-source' :: IO B.ByteString
-source' = B.readFile "../unicafe.json"
-
 printFood :: (Restaurant, [T.Text]) -> [String]
 printFood (r, foods)
   | Prelude.length foods == 0 = [separator '-', show r ++ ":", "No food available today."]
