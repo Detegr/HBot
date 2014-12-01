@@ -3,15 +3,16 @@
 module Plugin.Unicafe(unicafe) where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.List (intercalate)
-import Data.Char (toLower)
 import Data.Aeson
 import Data.Aeson.TH
+import Data.Char (toLower)
 import Data.DateTime
-import qualified Data.Text as T hiding (map,concat,filter)
+import Data.List (intercalate)
 import Network.HTTP
+import Text.Printf
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.Text as T hiding (map,concat,filter)
 import qualified Data.Text.IO as TIO
 
 import PluginData
@@ -156,7 +157,7 @@ currentDate :: IO T.Text
 currentDate = toUnicafeDate <$> toGregorian' <$> getCurrentTime
 
 toUnicafeDate :: (Integer, Int, Int) -> T.Text
-toUnicafeDate (y,m,d) = T.pack $ intercalate "." [show d, show m]
+toUnicafeDate (y,m,d) = T.pack $ intercalate "." [printf "%02d" d, show m]
 
 getFoods :: [Restaurant] -> IO [(Restaurant, [T.Text])]
 getFoods = mapM getFood
@@ -183,10 +184,10 @@ usage = ["Available restaurants: ",
 
 unicafe :: PluginData a -> IO (PluginResult a)
 unicafe pd = do
-  (d,m,y) <- toGregorian' <$> getCurrentTime
+  (y,m,d) <- toGregorian' <$> getCurrentTime
   case getRestaurants pd of
     []  -> msgsToChannel pd $ usage
     restaurants -> do
       foods <- getFoods restaurants
-      let foodstrs = ["Food for " ++ intercalate "." [show d,show m,show y] ++ ":"] ++ (concat . map printFood $ foods) ++ [specialSeparator '-' '*']
+      let foodstrs = ["Food for " ++ intercalate "." [printf "%02d" d,show m,show y] ++ ":"] ++ (concat . map printFood $ foods) ++ [specialSeparator '-' '*']
       msgsToChannel pd foodstrs
