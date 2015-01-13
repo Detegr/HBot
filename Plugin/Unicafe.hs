@@ -157,7 +157,7 @@ currentDate :: IO T.Text
 currentDate = toUnicafeDate <$> toGregorian' <$> getCurrentTime
 
 toUnicafeDate :: (Integer, Int, Int) -> T.Text
-toUnicafeDate (y,m,d) = T.pack $ intercalate "." [printf "%02d" d, show m]
+toUnicafeDate (y,m,d) = T.pack $ intercalate "." [printf "%02d" d, printf "%02d" m]
 
 getFoods :: [Restaurant] -> IO [(Restaurant, [T.Text])]
 getFoods = mapM getFood
